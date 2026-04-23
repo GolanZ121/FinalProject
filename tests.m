@@ -4,7 +4,7 @@ clc; clear; close all;
 Fs = 10e6;
 
 % load the raw_samples file 
-filename = 'raw_samples_12_Feb_2026_09_30_40_676_fs_10MHz.32fc';
+filename = 'raw_samples/raw_samples_12_Feb_2026_09_30_39_442_fs_10MHz.32fc';
 fid = fopen(filename, 'r');
 
 % Read all data as 32-bit floats
@@ -15,5 +15,25 @@ TotalTime = numSamples / Fs;
 % Reshape data into a time series format
 
 time = (0:numSamples-1) / Fs;
-plot(time, [real(data), imag(data)]);
+start_time = 110e-3;
+end_time = 130e-3;
+% Extract the relevant segment of the data based on the specified time range
+
+
+startTimeSec = 118.8;
+endTimeSec = startTimeSec + 643e-3;
+[dataSegment, time_segment] = chopSignal(data, Fs, startTimeSec, endTimeSec);
+figure;
+plot(time_segment, [real(dataSegment), imag(dataSegment)]);
 legend("Real", "Imaginary");
+
+figure;
+spectrogram(dataSegment,64,32,1024,Fs,'yaxis', 'centered')
+
+function [sig, new_time_axis] = chopSignal(signal, Fs, start_ms, end_ms)
+    time = (0:length(signal)-1) / Fs;
+    startIdx = start_ms * Fs * 1e-3+ 1;
+    endIdx = end_ms * Fs * 1e-3;
+    new_time_axis = time(startIdx:endIdx);
+    sig = signal(startIdx:endIdx); % Extract the signal segment based on the provided time range
+end
