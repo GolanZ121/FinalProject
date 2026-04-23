@@ -4,7 +4,7 @@ clc; clear; close all;
 Fs = 10e6;
 
 % load the raw_samples file 
-filename = 'raw_samples/raw_samples_12_Feb_2026_09_30_50_921_fs_10MHz.32fc';
+filename = 'raw_samples/raw_samples_12_Feb_2026_09_30_39_442_fs_10MHz.32fc';
 fid = fopen(filename, 'r');
 
 % Read all data as 32-bit floats
@@ -12,17 +12,12 @@ data = fread(fid, [2, Inf], 'float32=>double');
 fclose(fid);
 data = complex(data(1,:), data(2,:));
 
-
-
 numSamples = length(data);
 TotalTime = numSamples / Fs;
 
 time = (0:numSamples-1) / Fs;
 
 % Extract the relevant segment of the data based on the specified time range
-
-
-%[data, time] = chopSignal(data, Fs, 59.76, 59.83);
 
 figure;
 plot(time, real(data));
@@ -40,16 +35,6 @@ spectrogram(data,64,32,1024,Fs,'yaxis', 'centered')
 plot_fft(data, Fs);
 
 %plot_auto_corr(data);
-chirps = load("chirps.mat");
-chirps = chirps.data;
-plot_cross_corr(chirps, data);
-
-function plot_cross_corr(sig1, sig2)
-    figure;
-    plot(abs(conv(flip(conj(sig1)), sig2)));
-
-end
-
 
 function [X, freqs] = plot_fft(signal, Fs)
 arguments
