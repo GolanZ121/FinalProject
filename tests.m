@@ -8,27 +8,54 @@ filename = 'raw_samples/raw_samples_12_Feb_2026_09_30_39_442_fs_10MHz.32fc';
 fid = fopen(filename, 'r');
 
 % Read all data as 32-bit floats
-data = fread(fid, inf, 'float32'); 
+data = fread(fid, [2, Inf], 'float32=>double');
 fclose(fid);
+data = complex(data(1,:), data(2,:));
+
 numSamples = length(data);
 TotalTime = numSamples / Fs;
-% Reshape data into a time series format
 
 time = (0:numSamples-1) / Fs;
-start_time = 110e-3;
-end_time = 130e-3;
+
 % Extract the relevant segment of the data based on the specified time range
 
-
-startTimeSec = 118.8;
-endTimeSec = startTimeSec + 643e-3;
-[dataSegment, time_segment] = chopSignal(data, Fs, startTimeSec, endTimeSec);
 figure;
-plot(time_segment, [real(dataSegment), imag(dataSegment)]);
+plot(time, real(data));
+hold on;
+plot(time, imag(data));
+
 legend("Real", "Imaginary");
+title("Signal in time");
+xlabel("Time [s]");
+ylabel("Amplitude [-]");
 
 figure;
-spectrogram(dataSegment,64,32,1024,Fs,'yaxis', 'centered')
+spectrogram(data,64,32,1024,Fs,'yaxis', 'centered')
+
+plot_fft(data, Fs);
+
+%plot_auto_corr(dataSegment);
+
+function [X, freqs] = plot_fft(signal, Fs)
+arguments
+    signal 
+    Fs 
+end
+    X = fft(signal);
+    freqs = linspace(-Fs/2, Fs/2, length(X));
+    figure;
+    plot(freqs, fftshift(abs(X)));
+
+
+end
+
+function plot_auto_corr(signal)
+    [m,lags] = autocorr(abs(signal));
+    
+    figure;
+    plot(lags, m);
+
+end
 
 function [sig, new_time_axis] = chopSignal(signal, Fs, start_ms, end_ms)
     time = (0:length(signal)-1) / Fs;
