@@ -12,12 +12,17 @@ data = fread(fid, [2, Inf], 'float32=>double');
 fclose(fid);
 data = complex(data(1,:), data(2,:));
 
+
+
 numSamples = length(data);
 TotalTime = numSamples / Fs;
 
 time = (0:numSamples-1) / Fs;
 
 % Extract the relevant segment of the data based on the specified time range
+
+
+%[data, time] = chopSignal(data, Fs, 59.76, 59.83);
 
 figure;
 plot(time, real(data));
@@ -34,7 +39,25 @@ spectrogram(data,64,32,1024,Fs,'yaxis', 'centered')
 
 plot_fft(data, Fs);
 
-%plot_auto_corr(data);
+
+S = load("zadoff4.mat");
+zadoff4 = S.data;
+
+ = load("zadoff6.mat");
+zadoff6 = S.data;
+
+
+
+figure;
+plot_cross_corr(zadoff4, data);
+hold on;
+plot_cross_corr(zadoff6, data);
+
+function plot_cross_corr(sig1, sig2)
+    plot(abs(conv(flip(conj(sig1)), sig2)));
+
+end
+
 
 function [X, freqs] = plot_fft(signal, Fs)
 arguments

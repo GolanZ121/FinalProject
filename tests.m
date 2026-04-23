@@ -4,7 +4,7 @@ clc; clear; close all;
 Fs = 10e6;
 
 % load the raw_samples file 
-filename = 'raw_samples/raw_samples_12_Feb_2026_09_30_50_921_fs_10MHz.32fc';
+filename = 'synced_samples-20260423T161109Z-3-001/synced_samples/synced_samples_12_Feb_2026_09_30_50_921_fs_15.36MHz.32fc';
 fid = fopen(filename, 'r');
 
 % Read all data as 32-bit floats
@@ -37,15 +37,10 @@ ylabel("Amplitude [-]");
 figure;
 spectrogram(data,64,32,1024,Fs,'yaxis', 'centered')
 
-plot_fft(data, Fs);
+plot_fft(data(81:1104), Fs);
 
-%plot_auto_corr(data);
-chirps = load("chirps.mat");
-chirps = chirps.data;
-plot_cross_corr(chirps, data);
 
 function plot_cross_corr(sig1, sig2)
-    figure;
     plot(abs(conv(flip(conj(sig1)), sig2)));
 
 end
@@ -59,8 +54,7 @@ end
     X = fft(signal);
     freqs = linspace(-Fs/2, Fs/2, length(X));
     figure;
-    plot(freqs, fftshift(abs(X)));
-
+    plot(fftshift((X)), "o");
 
 end
 
