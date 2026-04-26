@@ -4,26 +4,80 @@ clc; clear; close all;
 Fs = 10e6;
 
 % load the raw_samples file 
-filename = 'C:\Users\ZBOOK\FinalProject\raw_bits\raw_bits_12_Feb_2026_09_30_39_442.txt';
+filename = 'C:\Users\ZBOOK\FinalProject\raw_bits\raw_bits_12_Feb_2026_13_34_28_250.txt';
 fid = fopen(filename, 'r');
 
 % Read all data as 32-bit floats
-data = fread(fid, [2, Inf], 'float32=>double');
+deECCbits = int2bitfread(fid);
 fclose(fid);
-data = complex(data(1,:), data(2,:));
 
-deECbits=1408;
+% CRC_CheckValue parameters
+deECCbitsaLen=1408;
 CRCLen=24; %at the end of the data
+polynom=[1 1 0 1 1 1 1 1 0 0 1 1 0 0 1 0 0 1 1 0 0 0 0 1 1]; % 0 --> n=24 
+init=0;
+
+success = CRC_test(deECCbits, CRCLen, deECCbitsaLen, polynom, zeros(CRCLen,1).');
+
 
 %% CRC
-function ProcessedBits = crc(deECCbits, CRCLen, deECCbitsaLen)
+function CheckValue = CRC_CheckValue(deECCbits, CRCLen, deECCbitsaLen, polynom)
 
-% Cyclic redundancy check decoding and removal
+% finds the check value of the Cyclic redundancy check 
 % parameters:
-% deECbits - the bits after decoding the xor mask, cyclic buffer and error correction code (interliver)
-% CRCLen - the length of the CRC sequence 
-% deECCbitsaLen - the length of the bit sequence (data+CRC)
+% deECCbits - the bits after decoding the xor mask, cyclic buffer and error correction code (interliver)
+% CRCLen - the length of the CRC sequence (n)
+% deECCbitsaLen - the length of the bit sequence (data+CRC_CheckValue)
+% polynom - the characteristic polynomial 
 
+bits=[deECCbits(1:deECCbitsaLen-CRCLen),zeros(CRCLen,1).'];
+for i=1:deECCbitsaLen
+    deECCbits_xor_polynom=xor(bits(i:i+CRCLen), polynom);
+    bits=[deECCbits_xor_polynom,bits(i+CRCLen+1:end)];
+end
 
+CheckValue=bits(deECCbitsaLen-CRCLen:end);
+
+end
+
+function IsValidCRC = CRC_Vailidation(deECCbits, CRCLen, deECCbitsaLen, polynom)
+
+% validates the check value of the Cyclic redundancy check 
+% parameters:
+% deECCbits - the bits after decoding the xor mask, cyclic buffer and error correction code (interliver)
+% CRCLen - the length of the CRC sequence (n)
+% deECCbitsaLen - the length of the bit sequence (data+CRC_CheckValue)
+% polynom - the characteristic polynomial 
+
+CheckValue = CRC_CheckValue(deECCbits, CRCLen, deECCbitsaLen, polynom);
+
+bits=[deECCbits(1:deECCbitsaLen-CRCLen),CheckValue];
+
+for i=1:deECCbitsaLen
+    deECCbits_xor_polynom=xor(bits(i:i+CRCLen), polynom);
+    bits=[deECCbits_xor_polynom,bits(i+CRCLen+1:end)];
+end
+
+IsValidCRC=bits(deECCbitsaLen-CRCLen:end)==zeros(CRCLen,1).';
+
+end
+
+function success = CRC_test(deECCbits, CRCLen, deECCbitsaLen, polynom, CheckValue)
+
+% validates the check value of the Cyclic redundancy check 
+% parameters:
+% deECCbits - the bits after decoding the xor mask, cyclic buffer and error correction code (interliver)
+% CRCLen - the length of the CRC sequence (n)
+% deECCbitsaLen - the length of the bit sequence (data+CRC_CheckValue)
+% polynom - the characteristic polynomial 
+
+bits=[deECCbits(1:deECCbitsaLen-CRCLen),zeros(CRCLen,1).'];
+
+for i=1:deECCbitsaLen
+    deECCbits_xor_polynom=xor(bits(i:i+CRCLen), polynom);
+    bits=[deECCbits_xor_polynom,bits(i+CRCLen+1:end)];
+end
+
+success=(bits(deECCbitsaLen-CRCLen:end)==CheckValue);
 
 end
