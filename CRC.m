@@ -17,6 +17,7 @@ CRCLen=24; %at the end of the data
 polynom=[1 1 0 1 1 1 1 1 0 0 1 1 0 0 1 0 0 1 1 0 0 0 0 1 1]; % 0 --> n=24 
 init=0;
 
+%% test
 success = CRC_test(deECCbits, CRCLen, deECCbitsaLen, polynom, zeros(CRCLen,1).');
 
 
@@ -78,6 +79,8 @@ for i=1:deECCbitsaLen
     bits=[deECCbits_xor_polynom,bits(i+CRCLen+1:end)];
 end
 
-success=(bits(deECCbitsaLen-CRCLen:end)==CheckValue);
+success = CRC_Vailidation(deECCbits, CRCLen, deECCbitsaLen, polynom);
+
+% success=(bits(deECCbitsaLen-CRCLen:end)==CheckValue);
 
 end
