@@ -33,8 +33,8 @@ function data=TurboDecoder(ProccesedBits, SubBlockLength, interliver, DummySize,
     [S, P1, P2]= PreDecoderDecode(ProccesedBits, SubBlockLength, interliver, DummySize, DummyMatSize, DummyFormat);
     
     %viterbi parameters:
-    % num_states=2^(SubBlockLength-1);
-    % states=(1:num_states);
+    num_states=2^(1408-1);
+    states=(1:num_states);
     % InitialProbabilities=ones(sqrt(num_states))/2;
     % for s = 1:num_states
     %     ObservationsProbabilitiesMat(s, 1) = InitialProbabilities(s) * ObservationsProbabilitiesMat(s, ObservationsSequnce(1));
@@ -42,12 +42,11 @@ function data=TurboDecoder(ProccesedBits, SubBlockLength, interliver, DummySize,
     % TransitionProbabilitiesMat = 
     % ObservationsSequnce =
 
-    states=;
     init=;
     trans=;
     emit=;
     obs=;
-    
+
     data=Viterbi(states,init,trans,emit,obs);
 
 end
@@ -110,24 +109,36 @@ function [InterleavedP1, InterleavedP2] = Deinterlacer(InterleavedInerlacedP)
     InterleavedP2= InterleavedInerlacedP(2:2:end);
 end
 
-function path=Viterbi(states,init,trans,emit,obs)
-    prob=zeros(length(obs),length(states));
-    prev=NaN(length(obs),length(states));
-    prob(0,states)=init(states)*emit(states,obs(0));
-    for t=1:length(obs)-1
-        for s=1:length(states)
-            new_prob=prob(t-1,states)*trans(states,s)*emit(s,obt(t));
-            if new_prob>prob(t,states)
-                prob(t,s)=new_prob;
-                prev(t,s)=states;
+function path=Viterbi(States,InitialStateProbabilities,TransitionStatesMatrix,EmissionMatrix,ObservationsSequnce)
+    
+    NumOfStates=length(States);
+    ObservationSequnceSize=length(ObservationsSequnce);
+
+    probabilities=zeros(ObservationSequnceSize,NumOfStates);
+    previousStateMat=NaN(ObservationSequnceSize,NumOfStates);
+
+    for s=1:NumOfStates
+        probabilities(0,s)=InitialStateProbabilities(s)*EmissionMatrix(s,ObservationsSequnce(0));
+    end
+
+    for t=1:ObservationSequnceSize-1
+        for s=1:NumOfStates
+            for r=NumOfStates
+                new_prob=probabilities(t-1,r)*TransitionStatesMatrix(r,s)*EmissionMatrix(s,obt(t));
+                if new_prob>probabilities(t,s)
+                    probabilities(t,s)=new_prob;
+                    previousStateMat(t,s)=r;
+                end
             end
         end
     end
-    path=NaN(length(obs),1);
-    m=max(prob(length(obs),states));
-    path(end)=states(prob(length(obs),states)==m);
-    for t=length(obs)-2:0
-        path(t)=prev(t+1,path(t+1));
+
+    path=NaN(ObservationSequnceSize,1);
+    m=max(probabilities(ObservationSequnceSize,States));
+    path(end)=States(probabilities(ObservationSequnceSize,States)==m);
+
+    for t=ObservationSequnceSize-2:0
+        path(t)=previousStateMat(t+1,path(t+1));
     end
 end
 
