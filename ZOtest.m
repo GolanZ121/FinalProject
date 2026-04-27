@@ -4,19 +4,23 @@ close all;
 NFFT = 1024;
 og_Fs = 15.36e6;
 
-%%
 
+
+%% Generate ZadoffChu
 ZC600 = zadoffChuSeq(600, 601);
 ZC600PAD = [zeros(212, 1); ZC600; zeros(211, 1)];
 ZC600OFDM = ifft(ifftshift(ZC600PAD));
 
-f_shift = 150;
+f_shift = 5e3;
 
-Ts = NFFT / og_Fs;
-time = linspace(0, Ts, NFFT);
-shiftedZO = ZC600OFDM .* exp(1j * 2 * pi * f_shift * time).';
+Ts = (NFFT + 80)/ og_Fs;
+time = linspace(0, Ts, NFFT+80);
+KNOWNCP = ZC600OFDM(NFFT-80 + 1: NFFT);
 
+ZC_with_cp = [ZC600OFDM(NFFT-80 + 1: NFFT); ZC600OFDM];
+shiftedZO = ZC_with_cp .* exp(1j * 2 * pi * f_shift * time).';
 tZO = [zeros(10000, 1); shiftedZO; zeros(234235, 1)];
+
 figure;
 spectrogram(tZO,64,32,1024,og_Fs,'yaxis', 'centered')
 
@@ -25,25 +29,20 @@ figure;
 plot(1:length(c1), [abs(c1)]);
 
 % Get the ZO base on the time sync
-ZOcut = tZO(idx1:idx1+NFFT-1);
+ZOcut = tZO(idx1-80:idx1 + NFFT-1);
 % Fix the Coarse frequency shift
 time = linspace(0, Ts, length(tZO));
 
-%% Calc COARSE freq offset around 0
-[X, freqs] = zoomed_ft((conj(ZOcut) .* ZC600OFDM).', -7e3, 7e3, og_Fs, 10);
-plot(freqs, abs(X));
-[~, max_freq_idx] = max(X);
-freq_offset = freqs(max_freq_idx);
-tZO = tZO .* exp(1j*2*pi*time*f_shift*3).';
+%% Find coarse frequency offset
+
+cp11 = ZOcut(1:80);
+cp12 = ZOcut(NFFT+1: NFFT + 80);
+freq_offset = mean(angle(cp11 .* conj(cp12)))  * og_Fs / (2*pi*(NFFT + 80));
+
+tZO = tZO .* exp(1j * 2 * pi * freq_offset * time).';
 
 
-%% Calc COARSE freq offset around 0
-ZOcut = tZO(idx1:idx1+NFFT-1);
-[X, freqs] = zoomed_ft((conj(ZOcut) .* ZC600OFDM).', -600, 600, og_Fs, 1);
-plot(freqs, abs(X));
-[~, max_freq_idx] = max(X);
-freq_offset = freqs(max_freq_idx);
-tZO = tZO .* exp(-1j*2*pi*time*freq_offset).';
+
 
 
 %%
@@ -52,7 +51,7 @@ figure;
 plot(1:length(c1), [abs(c1)]);
 
 % Get the ZO base on the time sync
-ZOcut = tZO(idx1:idx1+NFFT-1);
+ZOcut = tZO(idx1-80:idx1 + NFFT-1);
 
 
 
