@@ -1,0 +1,89 @@
+clc;
+clear; 
+close all;
+NFFT = 1024;
+og_Fs = 15.36e6;
+
+%%
+
+ZC600 = zadoffChuSeq(600, 601);
+ZC600PAD = [zeros(212, 1); ZC600; zeros(211, 1)];
+ZC600OFDM = ifft(ifftshift(ZC600PAD));
+
+f_shift = 150;
+
+Ts = NFFT / og_Fs;
+time = linspace(0, Ts, NFFT);
+shiftedZO = ZC600OFDM .* exp(1j * 2 * pi * f_shift * time).';
+
+tZO = [zeros(10000, 1); shiftedZO; zeros(234235, 1)];
+figure;
+spectrogram(tZO,64,32,1024,og_Fs,'yaxis', 'centered')
+
+[c1, idx1] = cross_corr(ZC600OFDM, tZO);
+figure;
+plot(1:length(c1), [abs(c1)]);
+
+% Get the ZO base on the time sync
+ZOcut = tZO(idx1:idx1+NFFT-1);
+% Fix the Coarse frequency shift
+time = linspace(0, Ts, length(tZO));
+
+%% Calc COARSE freq offset around 0
+[X, freqs] = zoomed_ft((conj(ZOcut) .* ZC600OFDM).', -7e3, 7e3, og_Fs, 10);
+plot(freqs, abs(X));
+[~, max_freq_idx] = max(X);
+freq_offset = freqs(max_freq_idx);
+tZO = tZO .* exp(-1j*2*pi*time*freq_offset).';
+
+
+%% Calc COARSE freq offset around 0
+ZOcut = tZO(idx1:idx1+NFFT-1);
+[X, freqs] = zoomed_ft((conj(ZOcut) .* ZC600OFDM).', -1e3, 1e3, og_Fs, 0.1);
+plot(freqs, abs(X));
+[~, max_freq_idx] = max(X);
+freq_offset = freqs(max_freq_idx);
+tZO = tZO .* exp(-1j*2*pi*time*freq_offset).';
+
+
+%%
+[c1, idx1] = cross_corr(ZC600OFDM, tZO);
+figure;
+plot(1:length(c1), [abs(c1)]);
+
+% Get the ZO base on the time sync
+ZOcut = tZO(idx1:idx1+NFFT-1);
+
+
+
+function [conv_res, max_idx] = cross_corr(sig2, sig1)
+    conv_res = conv(sig1, flip(conj(sig2)), "valid");
+    [~, max_idx] = max(conv_res);
+end
+
+function [X, freqs] = plot_fft(signal, Fs, nfft)
+arguments
+    signal 
+    Fs 
+    nfft = 1024
+end
+    X = fftshift(fft(signal, nfft));
+    freqs = linspace(-Fs/2, Fs/2, length(X));
+    figure;
+    plot(freqs, (abs(X)));
+end
+
+
+function [X, freqs] = zoomed_ft(x, f_start, f_end, Fs, res)
+    NFFT = Fs / res;
+
+    %% =========== Z TRANSFTORM =========== %%
+        m = NFFT;
+        w = exp(-1j*2*pi*(f_end-f_start)/(m*Fs)); % Spiral ratio
+        a = exp(1j*2*pi*f_start/Fs); % Starting point
+        
+        % Compute the zoom spectrum
+        X = czt(x, m, w, a);
+        freqs = linspace(f_start, f_end, m);
+
+end

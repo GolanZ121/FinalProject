@@ -44,21 +44,13 @@ figure;
 plot(1:length(c1), [abs(c1); abs(c2)]);
 
 %%
-starting_idx = idx1 - 3*NFFT - cp_len*2 -ext_cp_len + 1;
+starting_idx = idx1 - 3*NFFT - cp_len*3 -ext_cp_len + 1;
 ending_idx = starting_idx + NFFT * number_of_symbols + 2*ext_cp_len + 7*cp_len - 1;
 
 time_synced_data = data(starting_idx:ending_idx);
 
 figure;
 spectrogram(time_synced_data,64,32,NFFT,og_Fs,'yaxis', 'centered')
-
-firstcp = time_synced_data(1:ext_cp_len);
-secondcp = time_synced_data(NFFT+1: NFFT+ext_cp_len);
-
-[c4, idx4] = cross_corr(time_synced_data, time_synced_data);
-
-figure;
-plot(unwrap(angle(time_synced_data)));
 
 
 %% Get the forth symbol (The revcieved ZC sequence)
@@ -77,6 +69,8 @@ freq_synced_data = time_synced_data .* exp(1j * 2 * pi * freq_offset *time);
 
 forth_symbol = freq_synced_data(forth_sym_start:forth_sym_end);
 plot_fft(forth_symbol' .* ZC600OFDM, og_Fs)
+
+plot(freq_synced_data, "o");
 
 function [conv_res, max_idx] = cross_corr(sig2, sig1)
     conv_res = conv(sig1, flip(conj(sig2)), "valid");
