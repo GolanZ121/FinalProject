@@ -1,0 +1,51 @@
+%% clean
+clc; clear; close all;
+
+%% Scripts to examine the samples
+% Params
+Fs = 15.36e6;
+
+filename = 'raw_bits-20260423T161106Z-3-001\raw_bits/raw_bits_12_Feb_2026_09_30_39_442.txt';
+fileID = fopen(filename,'r');
+formatSpec = '%s';
+bits = fscanf(fileID,formatSpec);
+fclose(fileID);
+bits = dec2bin(hex2dec(reshape(bits, numel(bits), [])))';
+bits = bits(:);
+
+mask = gen_gold_code;
+demasked_bits = xor(bits,mask);
+
+bits_after_cycle = cyclic_buffer(demasked_bits);
+
+%% functions
+
+% this function creates a xor mask 
+function seq = gen_gold_code(Nc, L, seed)
+    arguments
+        Nc (1,1) = 1600
+        L (1,1) = 7200
+        seed (1,1) = 0x12345678
+    end
+    
+    x1 = zeros(Nc + L + 31, 1);
+    x2 = zeros(Nc + L + 31, 1);
+    x2(1:32) = flip(dec2bin(seed, 32));
+    x1(1) = 1;
+    for n = 1:(Nc + L)
+        x1(n + 31) = xor(x1(n + 3), x1(n));
+        x2(n + 31) = xor(xor(x2(n + 3), x2(n + 2)), xor(x2(n+1), x2(n)));
+    end
+    seq = xor(x1(Nc + 1:Nc+L), x2(Nc + 1:Nc+L));
+end
+
+% this function removes a cyclic buffer
+function bits_after_cycle = cyclic_buffer(bits,start,size)
+    % bits - bits of info
+    % start - start of info
+    % size - size of info
+    bits_after_cycle = zeros(size,1);
+    stop = size - (legnth(bits) - start); % where in the bits array to stop after the cyclic copy
+    
+    bits_after_cycle(1:)
+end
