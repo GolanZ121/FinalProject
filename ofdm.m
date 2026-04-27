@@ -1,5 +1,6 @@
 %% clean
 clc; clear; close all;
+
 %% Scripts to examine the samples
 % Params
 Fs = 15.36e6;
@@ -11,12 +12,23 @@ data = fread(fileID, [2, Inf], 'single');
 data = data(1,:) + 1i*data(2,:);
 fclose(fileID);
 
-numSamples = length(data);
-TotalTime = numSamples / Fs;
-% Reshape data into a time series format
-time = (0:numSamples-1) / Fs;
-plot(time, data);
-legend("Real", "Imaginary");
+%% fix the phase 
+
+start_block4 = 1024 * 3 + 80 + 72 * 3 + 1;
+start_block6 = 1024 * 5 + 80 +72 * 5 + 1;
+block4 = data(start_block4:(1024 + start_block4 - 1));
+block6 = data(start_block6:(1024 + start_block6 - 1));
+
+phase = phase_sync(block4,block6);
+
+% start_block1 = 1024 * 0 + 80 +72 * 0 + 1;
+% block1 = data(start_block1:(1024 + start_block1 - 1))
+% block1 = block1.*exp(phase*j);
+% 
+% x = fftshift(fft(block1));
+% 
+% scatterplot(x)
+data = data.*exp(phase*1j);
 
 %% Script to examine ofdm function
 % Params
@@ -28,31 +40,41 @@ stop_sc = 813;
 num_of_symbols = 9;
 NFFT = 1024;
 
-%% FIX ONE BLOCK: 
-
-% block2 = data(81:(1024+80));
-% x = fftshift(fft(block2));
-
-
-start_block4 = 1024 * 4 + 80 + 72 * 4 + 1;
-start_block6 = 1024 * 5 + 80 +72 * 4 + 1;
-block4 = data(start_block4:(1024 + start_block4 - 1));
-x = fftshift(fft(block4));
-phases = linspace(0,2,360);
-
-scatterplot(x)
-
-%% CONTINUE
 demodulated_data = ofdm_demod(data,Ncp,ex_Ncp,Nsc,start_sc,stop_sc, num_of_symbols);
 
-% load the raw_samples file 
-filename = 'raw_bits-20260423T161106Z-3-001\raw_bits/raw_bits_12_Feb_2026_09_30_39_442.txt';
-fileID = fopen(filename,'r');
-formatSpec = '%s';
-bits = fscanf(fileID,formatSpec);
-fclose(fileID);
-binresult = dec2bin(hex2dec(reshape(bits, numel(bits)/2, [])));
+% check the result 
+% filename = 'raw_bits-20260423T161106Z-3-001\raw_bits/raw_bits_12_Feb_2026_09_30_39_442.txt';
+% fileID = fopen(filename,'r');
+% formatSpec = '%s';
+% bits = fscanf(fileID,formatSpec);
+% fclose(fileID);
+% binresult = dec2bin(hex2dec(reshape(bits, numel(bits), [])))';
+% binresult = binresult(:);
+% err = sum(binresult ~= demodulated_data);
+
 %% functions
+
+% this function searches the phase diff
+function phase = phase_sync(block4,block6)
+    %block4 - first Zc symbol
+    %block6 - second Zc symbol
+
+    % create the 2 ZadoffChu symbols
+    ZC600 = zadoffChuSeq(600, 601);
+    ZC600PAD = [zeros(212, 1); ZC600; zeros(211, 1)];
+    ZC600OFDM = ifft(ifftshift(ZC600PAD));
+    
+    ZC147 = zadoffChuSeq(147, 601);
+    ZC147PAD = [zeros(212, 1); ZC147; zeros(211, 1)];
+    ZC147OFDM = ifft(ifftshift(ZC147PAD));
+
+    % calculate the phase diff
+    phase1 = angle(conj(block4)*ZC600OFDM);
+    phase2 = angle(conj(block6)*ZC147OFDM);
+    phase = (phase1 + phase2)/2;
+end
+
+% this function demodulates ofdm
 function data = ofdm_demod(packet,Ncp,ex_Ncp,Nsc,start_sc,stop_sc, num_of_symbols)
     % packet - the packet of information
     % Ncp - cyclic prefix, a partial copy of the end of the symbol to create  a
@@ -65,14 +87,17 @@ function data = ofdm_demod(packet,Ncp,ex_Ncp,Nsc,start_sc,stop_sc, num_of_symbol
     clean_packet = remove_cp(packet,Ncp,ex_Ncp,Nsc,num_of_symbols); % packet without cp
     
     slot = reshape(clean_packet,Nsc,[]); % create the slot matrix
-    slot_fft = fftshift(fft(slot))./(sqrt(Nsc)); % according to the formula (not sure if needed in our case)
+    slot_fft = fftshift(fft(slot),1)./(sqrt(Nsc)); % according to the formula (not sure if needed in our case)
     slot_fft = slot_fft(start_sc:stop_sc,:); % cut the irrelevant frequencies (frequency domain)
-    slot_fft = [slot_fft(1:600,:),slot_fft(602:end,:)]; % the mid subcarrier is null
-    slot_fft = [slot_fft(:,2:3),slot_fft(:,5),slot_fft(:,7:end)];
+    slot_fft = [slot_fft(1:300,:);slot_fft(302:end,:)]; % the mid subcarrier is null
+    slot_fft = [slot_fft(:,2:3),slot_fft(:,5),slot_fft(:,7:end)]; % The data is stored in symbols [2,3,5,7,8,9]
 
     % transform the slot to bits of data
     data = slot_fft(:);
-    data = pskdemod(data,4);
+    data = pskdemod(data,4,0.25*pi);
+    data(data == 2) = 5;
+    data(data == 1) = 2;
+    data(data == 5) = 1;
     data = dec2bin(data)';
     data = data(:);
 end
@@ -86,16 +111,16 @@ function clean_packet = remove_cp(packet,Ncp,ex_Ncp,Nsc,num_of_symbols)
     % num_of_symbols - a given information about num of symbols in a packet
 
     cp_diffs = ex_Ncp - Ncp;  % We will use it to remove the extended cp later
-    clean_packet = [];
+    clean_packet = zeros(1,Nsc*num_of_symbols);
     symbol_index = Ncp + 1;
     % at each iteration of the loop I cut the cp and paste the data
-    for i = [1:num_of_symbols]
+    for i = 1:num_of_symbols
         %symbols 1 and 9  have extended cp
         if i == 1 || i == num_of_symbols
             symbol_index = symbol_index + cp_diffs ;
         end
         end_symbol_index = symbol_index + Nsc  - 1;
-       clean_packet = [clean_packet,packet(symbol_index :end_symbol_index )] ;
+       clean_packet((i-1)*Nsc + 1:i*Nsc) = packet(symbol_index :end_symbol_index ) ;
        symbol_index = symbol_index + Nsc + Ncp; % calculate the next symbol index
     end
 end
