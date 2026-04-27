@@ -33,22 +33,16 @@ function data=TurboDecoder(ProccesedBits, SubBlockLength, interliver, DummySize,
     [S, P1, P2]= PreDecoderDecode(ProccesedBits, SubBlockLength, interliver, DummySize, DummyMatSize, DummyFormat);
     
     %viterbi parameters:
-    % num_states=2^(SubBlockLength-1);
-    % states=(1:num_states);
-    % InitialProbabilities=ones(sqrt(num_states))/2;
-    % for s = 1:num_states
-    %     ObservationsProbabilitiesMat(s, 1) = InitialProbabilities(s) * ObservationsProbabilitiesMat(s, ObservationsSequnce(1));
-    % end
-    % TransitionProbabilitiesMat = 
-    % ObservationsSequnce =
+    num_states=2^(SubBlockLength-1);
+    states=(1:num_states);
+    InitialProbabilities=ones(sqrt(num_states))/2;
+    for s = 1:num_states
+        ObservationsProbabilitiesMat(s, 1) = InitialProbabilities(s) * ObservationsProbabilitiesMat(s, ObservationsSequnce(1));
+    end
+    TransitionProbabilitiesMat = 
+    ObservationsSequnce =
 
-    states=;
-    init=;
-    trans=;
-    emit=;
-    obs=;
-    
-    data=Viterbi(states,init,trans,emit,obs);
+    data=Viterbi(ObservationsSequnce, states, InitialProbabilities,TransitionProbabilitiesMat, ObservationsProbabilitiesMat);
 
 end
 
@@ -110,7 +104,7 @@ function [InterleavedP1, InterleavedP2] = Deinterlacer(InterleavedInerlacedP)
     InterleavedP2= InterleavedInerlacedP(2:2:end);
 end
 
-function path=Viterbi(states,init,trans,emit,obs)
+function ViterbiStateSequnce=Viterbi(states,init,trans,emit,obs)
     prob=zeros(length(obs),length(states));
     prev=NaN(length(obs),length(states));
     prob(0,states)=init(states)*emit(states,obs(0));
@@ -125,9 +119,7 @@ function path=Viterbi(states,init,trans,emit,obs)
     end
     path=NaN(length(obs),1);
     m=max(prob(length(obs),states));
-    path(end)=states(prob(length(obs),states)==m);
-    for t=length(obs)-2:0
-        path(t)=prev(t+1,path(t+1));
-    end
+    s=states(prob(length(obs),states)==m);
+    path(end)=
 end
 

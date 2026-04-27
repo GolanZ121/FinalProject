@@ -1,3 +1,5 @@
+% בעיה: אי אפשר לבדוק את החלק הזה בלי לקבל פקטה חתוכה ולדעת מה אנחנו
+% מצפים לקבל וגם אני לא מצליחה לפתוח את הקובץ כביטים (אני פשוט לא בטוחה שפתחתי אותו תקין)
 clc; clear; close all;
 
 %% definitions
@@ -7,7 +9,7 @@ Fs = 10e6;
 filename = 'C:\Users\ZBOOK\FinalProject\processed_bits\processed_bits12_Feb_2026_09_30_39_442.txt';
 fid = fopen(filename, 'r');
 
-% Read all data as 32-bit floats
+% Read all data
 deECCbits = dec2bin(fread(fid));
 fclose(fid);
 
@@ -32,6 +34,8 @@ function CheckValue = CRC_CheckValue(deECCbits, CRCLen, deECCbitsaLen, polynom)
 % polynom - the characteristic polynomial 
 
 bits=[deECCbits(1:deECCbitsaLen-CRCLen),zeros(CRCLen,1).'];
+
+%
 for i=1:deECCbitsaLen
     deECCbits_xor_polynom=xor(bits(i:i+CRCLen), polynom);
     bits=[deECCbits_xor_polynom,bits(i+CRCLen+1:end)];
