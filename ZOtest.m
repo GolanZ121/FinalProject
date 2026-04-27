@@ -14,13 +14,14 @@ ZC600OFDM = ifft(ifftshift(ZC600PAD));
 f_shift = 5e3;
 
 Ts = (NFFT + 80)/ og_Fs;
-time = linspace(0, Ts, NFFT+80);
+time = 0: 1/og_Fs: Ts - 1/og_Fs;
 KNOWNCP = ZC600OFDM(NFFT-80 + 1: NFFT);
 
 ZC_with_cp = [ZC600OFDM(NFFT-80 + 1: NFFT); ZC600OFDM];
 shiftedZO = ZC_with_cp .* exp(1j * 2 * pi * f_shift * time).';
 tZO = [zeros(10000, 1); shiftedZO; zeros(234235, 1)];
-
+Ttotal = length(tZO) / og_Fs;
+%%
 figure;
 spectrogram(tZO,64,32,1024,og_Fs,'yaxis', 'centered')
 
@@ -31,8 +32,7 @@ plot(1:length(c1), [abs(c1)]);
 % Get the ZO base on the time sync
 ZOcut = tZO(idx1-80:idx1 + NFFT-1);
 % Fix the Coarse frequency shift
-time = linspace(0, Ts, length(tZO));
-
+time = 0: 1/og_Fs: Ttotal - 1/og_Fs;
 %% Find coarse frequency offset
 
 cp11 = ZOcut(1:80);
@@ -41,10 +41,6 @@ freq_offset = mean(angle(cp11 .* conj(cp12)))  * og_Fs / (2*pi*(NFFT + 80));
 
 tZO = tZO .* exp(1j * 2 * pi * freq_offset * time).';
 
-
-
-
-
 %%
 [c1, idx1] = cross_corr(ZC600OFDM, tZO);
 figure;
@@ -52,7 +48,6 @@ plot(1:length(c1), [abs(c1)]);
 
 % Get the ZO base on the time sync
 ZOcut = tZO(idx1-80:idx1 + NFFT-1);
-
 
 
 function [conv_res, max_idx] = cross_corr(sig2, sig1)
