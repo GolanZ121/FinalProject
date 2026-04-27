@@ -1,7 +1,7 @@
 %% clean
 clc; clear; close all;
 
-%% Scripts to examine the samples
+%% Scripts to fix the phase 
 % Params
 Fs = 15.36e6;
 
@@ -12,10 +12,9 @@ data = fread(fileID, [2, Inf], 'single');
 data = data(1,:) + 1i*data(2,:);
 fclose(fileID);
 
-%% fix the phase 
-
 start_block4 = 1024 * 3 + 80 + 72 * 3 + 1;
 start_block6 = 1024 * 5 + 80 +72 * 5 + 1;
+
 block4 = data(start_block4:(1024 + start_block4 - 1));
 block6 = data(start_block6:(1024 + start_block6 - 1));
 
