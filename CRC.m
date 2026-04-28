@@ -74,7 +74,6 @@ IsValidCRC = (res == init);
 
 end
 
-
 function success = CRC_test(deECCbits, CRCLen, deECCbitsLen, polynom, init, CheckValue)
 
 % validates the check value of the Cyclic redundancy check 
