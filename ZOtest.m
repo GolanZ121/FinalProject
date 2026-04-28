@@ -55,6 +55,7 @@ plot(1:length(c1), [abs(c1)]);
 ZOcut = tZO(idx1:idx1+NFFT-1);
 
 
+%% functions
 
 function [conv_res, max_idx] = cross_corr(sig2, sig1)
     conv_res = conv(sig1, flip(conj(sig2)), "valid");

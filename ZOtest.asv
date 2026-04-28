@@ -34,12 +34,12 @@ time = linspace(0, Ts, length(tZO));
 plot(freqs, abs(X));
 [~, max_freq_idx] = max(X);
 freq_offset = freqs(max_freq_idx);
-tZO = tZO .* exp(-1j*2*pi*time*freq_offset).';
+tZO = tZO .* exp(1j*2*pi*time*f_shift*3).';
 
 
 %% Calc COARSE freq offset around 0
 ZOcut = tZO(idx1:idx1+NFFT-1);
-[X, freqs] = zoomed_ft((conj(ZOcut) .* ZC600OFDM).', -1e3, 1e3, og_Fs, 0.1);
+[X, freqs] = zoomed_ft((conj(ZOcut) .* ZC600OFDM).', -600, 600, og_Fs, 1);
 plot(freqs, abs(X));
 [~, max_freq_idx] = max(X);
 freq_offset = freqs(max_freq_idx);
@@ -55,6 +55,7 @@ plot(1:length(c1), [abs(c1)]);
 ZOcut = tZO(idx1:idx1+NFFT-1);
 
 
+%% functions
 
 function [conv_res, max_idx] = cross_corr(sig2, sig1)
     conv_res = conv(sig1, flip(conj(sig2)), "valid");

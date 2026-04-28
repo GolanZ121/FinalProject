@@ -1,0 +1,61 @@
+clc; clear; close all;
+
+%% tests
+deECCbits = ones(1,1000);
+payload_length = bin2dec(int2str(deECCbits(1:8)));
+unknown1 = bin2dec(int2str(deECCbits(9:16)));
+version = bin2dec(int2str(deECCbits(17:24)));
+sequence_number = bin2dec(int2str(deECCbits(25:40)));
+states_info = deECCbits(41:56);
+serial = deECCbits(57:184);
+serial = reshape(serial, 8, [])';
+serial = bin2dec(int2str(serial));
+serial = char(serial); 
+long = bin2dec(int2str(deECCbits(185:216)));
+lat = bin2dec(int2str(deECCbits(217:248)));
+altitude = bin2dec(int2str(deECCbits(249:264)));
+height = bin2dec(int2str(deECCbits(265:280)));
+v_north = bin2dec(int2str(deECCbits(281:296)));
+v_east = bin2dec(int2str(deECCbits(297:312)));
+v_up = bin2dec(int2str(deECCbits(313:328)));
+unknown2 = bin2dec(int2str(deECCbits(329:344)));
+% time = %COMPLETE LATER!!!
+app_lat = bin2dec(int2str(deECCbits(409:440)));
+app_long = bin2dec(int2str(deECCbits(441:472)));
+home_long = bin2dec(int2str(deECCbits(473:504)));
+home_lat = bin2dec(int2str(deECCbits(505:536)));
+device_type = bin2dec(int2str(deECCbits(537:544)));
+uuid_len = bin2dec(int2str(deECCbits(545:552)));
+uuid = deECCbits(57:184);
+uuid = reshape(uuid, 8, [])';
+uuid = bin2dec(int2str(uuid));
+uuid = char(uuid); 
+
+fileID = fopen('test.txt','w');
+fprintf(fileID,'{"payload_length":%d,',payload_length);
+fprintf(fileID,'"unknown1":%d,',unknown1);
+fprintf(fileID,'"version":%d,',version);
+fprintf(fileID,'"sequence_number":%d,',sequence_number);
+fprintf(fileID,'"states_info":[%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d],',states_info);
+fprintf(fileID,'"serial":"%s",',serial);
+fprintf(fileID,'"long":%d,',long);
+fprintf(fileID,'"lat":%d,',lat);
+fprintf(fileID,'"altitude":%d,',altitude);
+fprintf(fileID,'"height":%d,',height);
+fprintf(fileID,'"v_north":%d,',v_north);
+fprintf(fileID,'"v_east":%d,',v_east);
+fprintf(fileID,'"v_up":%d,',v_up);
+fprintf(fileID,'"unknown2":%d,',unknown2);
+fprintf(fileID,'"time":%d-%d-%d,',unknown2);%COMPLETE LATER!!!
+fprintf(fileID,'"app_lat":%d,',app_lat);
+fprintf(fileID,'"app_long":%d,',app_long);
+fprintf(fileID,'"home_long":%d,',home_long);
+fprintf(fileID,'"home_lat":%d,',home_lat);
+fprintf(fileID,'"device_type":%d,',device_type);
+fprintf(fileID,'"uuid_len":%d,',uuid_len);
+fprintf(fileID,'"uuid":"%s",',serial);
+
+fclose(fileID);
+ 
+packet = [
+    "time":"12-Feb-2026 07:31:30","crc":"38F4","crc_valid":true]
