@@ -32,21 +32,23 @@ function data=TurboDecoder(ProccesedBits, SubBlockLength, interliver, DummySize,
     [S, P1, P2]= PreDecoderDecode(ProccesedBits, SubBlockLength, interliver, DummySize, DummyMatSize, DummyFormat);
     
     % viterbi parameters:
-    num_states=2^(SubBlockLength-4); %given:the last 4 bits get thrown away after interliving
-    states=(0:num_states);
+    % num_states=2^(SubBlockLength-4); %given:the last 4 bits get thrown away after interleaving
+    % states=(0:num_states);
+    % 
+    %     % NumOfNewBitsAtEachState=1; %k
+    %     % NumOfExitsAtEachState=2^NumOfNewBitsAtEachState;
+    % 
+    %     % ObservationsSequnceVec = reshsape([S;P1;P2],1,[]);
+    % ObservationsSequnceMat = transpose([S;P1;P2]);
+    % 
+    % init=pdist2(states, ObservationsSequnceMat(1), 'hamming');
+    % trans=pdist(states, 'hamming');
+    % emit=pdist2(states, ObservationsSequnceMat, 'hamming');
+    % 
+    % data=Viterbi(states,init,trans,emit,ObservationsSequnceMat);
 
-    % NumOfNewBitsAtEachState=1; %k
-    % NumOfExitsAtEachState=2^NumOfNewBitsAtEachState;
-
-    % ObservationsSequnceVec = reshsape([S;P1;P2],1,[]);
-    ObservationsSequnceMat = transpose([S;P1;P2]);
-
-    init=pdist2(states, ObservationsSequnceMat(1), 'hamming');
-    trans=pdist(states, 'hamming');
-    emit=;
-
-    data=Viterbi(states,init,trans,emit,ObservationsSequnceMat);
-
+    trellis = poly2trellis(4,[8 ]);
+    data= vitdec(ProccesedBits,trellis, );
 end
 
 function [S, P1, P2]=PreDecoderDecode(ProccesedBits, SubBlockLength, interliver, DummySize, DummyMatSize, DummyFormat)
@@ -107,44 +109,45 @@ function [InterleavedP1, InterleavedP2] = Deinterlacer(InterleavedInerlacedP)
     InterleavedP2= InterleavedInerlacedP(2:2:end);
 end
 
-function path=Viterbi(States,InitialStateProbabilities,TransitionStatesMatrix,EmissionMatrix,ObservationsSequnce)
-    %viterbi uses the terlis diagram - each state ate each time has a node
-    %EmissionMatrix - probability of observation o in each state 
+% function path=Viterbi(States,InitialStateProbabilities,TransitionStatesMatrix,EmissionMatrix,ObservationsSequnce)
+%     %viterbi uses the terlis diagram - each state ate each time has a node
+%     %EmissionMatrix - probability of observation o in each state 
+% 
+%     NumOfStates=length(States);
+%     ObservationSequnceSize=length(ObservationsSequnce);
+% 
+%     probabilities=zeros(ObservationSequnceSize,NumOfStates); % the probability to move from each state to each state according to the observation sequence
+%     previousStateMat=NaN(ObservationSequnceSize,NumOfStates); % for each state- its previous state in the observation sequence 
+% 
+%     % set the probabilities to move from state1 to each state
+%     for s=1:NumOfStates
+%         probabilities(1,s)=InitialStateProbabilities(s)*EmissionMatrix(s,ObservationsSequnce(1));
+%     end
+% 
+%     %for each observed state: update the probabilities for every couple of
+%     %states and the previous state accordingly
+%     for t=2:ObservationSequnceSize
+%         for s=1:NumOfStates
+%             for r=NumOfStates
+%                 new_prob=probabilities(t-1,r)*TransitionStatesMatrix(r,s)*EmissionMatrix(s,ObservationsSequnce(t));
+%                 if new_prob>probabilities(t,s)
+%                     probabilities(t,s)=new_prob;
+%                     previousStateMat(t,s)=r;
+%                 end
+%             end
+%         end
+%     end
+% 
+%     path=NaN(ObservationSequnceSize,1);
+% 
+%     %path(ObservationSequnceSize)=state s with maximal probability in ObservationSequnceSize probabilities(ObservationSequnceSize,s)
+%     path(ObservationSequnceSize)=States(probabilities(ObservationSequnceSize)==max(probabilities(ObservationSequnceSize)));
+% 
+%     %create a path vector from the previous state matrix
+%     for t=ObservationSequnceSize-1:1
+%         path(t)=previousStateMat(t+1,path(t+1));
+%     end
+% 
+% end
 
-    NumOfStates=length(States);
-    ObservationSequnceSize=length(ObservationsSequnce);
-
-    probabilities=zeros(ObservationSequnceSize,NumOfStates); % the probability to move from each state to each state according to the observation sequence
-    previousStateMat=NaN(ObservationSequnceSize,NumOfStates); % for each state- its previous state in the observation sequence 
-
-    % set the probabilities to move from state1 to each state
-    for s=1:NumOfStates
-        probabilities(1,s)=InitialStateProbabilities(s)*EmissionMatrix(s,ObservationsSequnce(1));
-    end
-
-    %for each observed state: update the probabilities for every couple of
-    %states and the previous state accordingly
-    for t=2:ObservationSequnceSize-1
-        for s=1:NumOfStates
-            for r=NumOfStates
-                new_prob=probabilities(t-1,r)*TransitionStatesMatrix(r,s)*EmissionMatrix(s,obt(t));
-                if new_prob>probabilities(t,s)
-                    probabilities(t,s)=new_prob;
-                    previousStateMat(t,s)=r;
-                end
-            end
-        end
-    end
-
-    path=NaN(ObservationSequnceSize,1);
-
-    %path(ObservationSequnceSize)=state s with maximal probability in ObservationSequnceSize probabilities(ObservationSequnceSize,s)
-    path(ObservationSequnceSize)=States(probabilities(ObservationSequnceSize)==max(probabilities(ObservationSequnceSize)));
-    
-    %create a path vector from the previous state matrix
-    for t=ObservationSequnceSize-1:1
-        path(t)=previousStateMat(t+1,path(t+1));
-    end
-
-end
 

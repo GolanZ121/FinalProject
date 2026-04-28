@@ -54,7 +54,7 @@ bits=[deECCbits(1:deECCbitsLen-CRCLen),CheckValue];
 %     deECCbits_xor_polynom=xor(bits(i:i+CRCLen), polynom);
 %     bits=[deECCbits_xor_polynom,bits(i+CRCLen+1:end)];
 % end
-[bits,~] = polydiv(bits,polynom);
+[bits,res] = polydiv(bits,polynom);
 
 IsValidCRC = (bits(deECCbitsLen-CRCLen:end)== zeros(CRCLen,1).');
 
