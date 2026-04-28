@@ -1,7 +1,6 @@
 clc; clear; close all;
 
 %% definitions
-Fs = 10e6;
 
 % load the raw_samples file 
 filename = 'C:\Users\ZBOOK\FinalProject\processed_bits\processed_bits12_Feb_2026_09_30_39_442.txt';
@@ -28,26 +27,25 @@ data=TurboDecoder(ProccesedBits, SubBlockLength, interliver, DummySize, DummyMat
 %% Turbo Decoder
 
 function data=TurboDecoder(ProccesedBits, SubBlockLength, interliver, DummySize, DummyMatSize, DummyFormat)
-    %input: parameters and processed (after xor and cyclic shift removal) bits
-    %output: data bits for CRC 
+    % input: parameters and processed (after xor and cyclic shift removal) bits
+    % output: data bits for CRC 
     [S, P1, P2]= PreDecoderDecode(ProccesedBits, SubBlockLength, interliver, DummySize, DummyMatSize, DummyFormat);
     
-    %viterbi parameters:
-    num_states=2^(1408-1);
-    states=(1:num_states);
-    % InitialProbabilities=ones(sqrt(num_states))/2;
-    % for s = 1:num_states
-    %     ObservationsProbabilitiesMat(s, 1) = InitialProbabilities(s) * ObservationsProbabilitiesMat(s, ObservationsSequnce(1));
-    % end
-    % TransitionProbabilitiesMat = 
-    % ObservationsSequnce =
+    % viterbi parameters:
+    num_states=2^(SubBlockLength-4); %given:the last 4 bits get thrown away after interliving
+    states=(0:num_states);
 
-    init=;
-    trans=;
+    % NumOfNewBitsAtEachState=1; %k
+    % NumOfExitsAtEachState=2^NumOfNewBitsAtEachState;
+
+    % ObservationsSequnceVec = reshsape([S;P1;P2],1,[]);
+    ObservationsSequnceMat = transpose([S;P1;P2]);
+
+    init=pdist2(states, ObservationsSequnceMat(1), 'hamming');
+    trans=pdist(states, 'hamming');
     emit=;
-    obs=;
 
-    data=Viterbi(states,init,trans,emit,obs);
+    data=Viterbi(states,init,trans,emit,ObservationsSequnceMat);
 
 end
 
@@ -110,18 +108,23 @@ function [InterleavedP1, InterleavedP2] = Deinterlacer(InterleavedInerlacedP)
 end
 
 function path=Viterbi(States,InitialStateProbabilities,TransitionStatesMatrix,EmissionMatrix,ObservationsSequnce)
-    
+    %viterbi uses the terlis diagram - each state ate each time has a node
+    %EmissionMatrix - probability of observation o in each state 
+
     NumOfStates=length(States);
     ObservationSequnceSize=length(ObservationsSequnce);
 
-    probabilities=zeros(ObservationSequnceSize,NumOfStates);
-    previousStateMat=NaN(ObservationSequnceSize,NumOfStates);
+    probabilities=zeros(ObservationSequnceSize,NumOfStates); % the probability to move from each state to each state according to the observation sequence
+    previousStateMat=NaN(ObservationSequnceSize,NumOfStates); % for each state- its previous state in the observation sequence 
 
+    % set the probabilities to move from state1 to each state
     for s=1:NumOfStates
-        probabilities(0,s)=InitialStateProbabilities(s)*EmissionMatrix(s,ObservationsSequnce(0));
+        probabilities(1,s)=InitialStateProbabilities(s)*EmissionMatrix(s,ObservationsSequnce(1));
     end
 
-    for t=1:ObservationSequnceSize-1
+    %for each observed state: update the probabilities for every couple of
+    %states and the previous state accordingly
+    for t=2:ObservationSequnceSize-1
         for s=1:NumOfStates
             for r=NumOfStates
                 new_prob=probabilities(t-1,r)*TransitionStatesMatrix(r,s)*EmissionMatrix(s,obt(t));
@@ -134,11 +137,14 @@ function path=Viterbi(States,InitialStateProbabilities,TransitionStatesMatrix,Em
     end
 
     path=NaN(ObservationSequnceSize,1);
-    m=max(probabilities(ObservationSequnceSize,States));
-    path(end)=States(probabilities(ObservationSequnceSize,States)==m);
 
-    for t=ObservationSequnceSize-2:0
+    %path(ObservationSequnceSize)=state s with maximal probability in ObservationSequnceSize probabilities(ObservationSequnceSize,s)
+    path(ObservationSequnceSize)=States(probabilities(ObservationSequnceSize)==max(probabilities(ObservationSequnceSize)));
+    
+    %create a path vector from the previous state matrix
+    for t=ObservationSequnceSize-1:1
         path(t)=previousStateMat(t+1,path(t+1));
     end
+
 end
 

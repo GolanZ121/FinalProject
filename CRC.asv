@@ -56,9 +56,24 @@ bits=[deECCbits(1:deECCbitsLen-CRCLen),CheckValue];
 % end
 [bits,~] = polydiv(bits,polynom);
 
-IsValidCRC = (bits(deECCbitsLen-CRCLen:end)==init);
+IsValidCRC = (bits(deECCbitsLen-CRCLen:end)== zeros(CRCLen,1).');
 
 end
+
+function IsValidCRC = CRC_Vailidation(deECCbits, polynom, init)
+
+% validates the check value of the Cyclic redundancy check 
+% parameters:
+% deECCbits - the bits after decoding the xor mask, cyclic buffer and error correction code (interliver)
+% polynom - the characteristic polynomial 
+% init - the inisialization (sequnce that was 
+
+[~,res] = polydiv(deECCbits,polynom);
+
+IsValidCRC = (res == init);
+
+end
+
 
 function success = CRC_test(deECCbits, CRCLen, deECCbitsLen, polynom, init, CheckValue)
 
@@ -83,8 +98,4 @@ success = CRC_Vailidation(deECCbits, CRCLen, deECCbitsLen, polynom,init);
 % success=(bits(deECCbitsLen-CRCLen:end)==CheckValue);
 
 end
-
-% function packet = restore_packet(deECCbits)
-% 
-% end
 
