@@ -2,13 +2,6 @@ clc; clear; close all;
 
 %% definitions
 
-% load the raw_samples file 
-filename = 'C:\Users\ZBOOK\FinalProject\processed_bits\processed_bits12_Feb_2026_09_30_39_442.txt';
-fid = fopen(filename, 'r');
-
-% Read all data
-ProccesedBits = dec2bin(fread(fid)); %len=4236
-fclose(fid);
 
 % Turbo Decoder parameters
 interliver= mod((43 * (1/1408) + 88 * (1/1408).^2), 1408);
@@ -27,15 +20,32 @@ data=TurboDecoder(ProccesedBits, SubBlockLength, interliver, DummySize, DummyMat
 %% Turbo Decoder
 
 function data=TurboDecoder(ProccesedBits, SubBlockLength, interliver, DummySize, DummyMatSize, DummyFormat)
+
     % input: parameters and processed (after xor and cyclic shift removal) bits
     % output: data bits for CRC 
-    [S1, P1, P2]= PreDecoderDecode(ProccesedBits, SubBlockLength, interliver, DummySize, DummyMatSize, DummyFormat);
     
+    [S1, P1, P2]= PreDecoderDecode(ProccesedBits, SubBlockLength, interliver, DummySize, DummyMatSize, DummyFormat);
+   
+    k =  1; % the number of input bit streams to the encoder
+    n = k/ConvCodeRate; % the number of output connections
+
+    ConstraintLen= 4; % because the polynomial degree is 3 
+    FeedBackConn =13; % because 13 in octal base is 11 which is 1011 in binary base which is equal to 1+D^2+D^3 which is the polynom of the encryption
+    CodeGen= [15 13]; % 15[oct]= 13[dec]= 1101[bin]=1+D+D^3 (G)
+    trellis = poly2trellis(ConstraintLen,CodeGen,FeedBackConn); 
+
+    tbdepthPres=[1/2 5;2/3 7.5;3/4 10;5/6 15]; % common tbdepth by CodeRate according to matlab documentation
+    tbdepth=tbdepthPres(tbdepthPres(:,1)==ConvCodeRate,2)*(ConstraintLen-1); %because rate 1/2 code has a traceback depth of 5 × (ConstraintLength – 1)
+    opmode='trunc'; % because the encoder is assumed to have started at the all-zeros state.
+    dectype='hard'; % because the input values are 0 or 1.
+    
+    S2= vitdec([S1,P1],trellis,tbdepth,opmode,dectype);
+    data= vitdec([S2,P2],trellis,tbdepth,opmode,dectype);
+
     % viterbi parameters:
     % num_states=2^(SubBlockLength-4); %given:the last 4 bits get thrown away after interleaving
     % states=(0:num_states);
     % 
-    %     % NumOfNewBitsAtEachState=1; %k
     %     % NumOfExitsAtEachState=2^NumOfNewBitsAtEachState;
     % 
     %     % ObservationsSequnceVec = reshsape([S;P1;P2],1,[]);
@@ -46,10 +56,6 @@ function data=TurboDecoder(ProccesedBits, SubBlockLength, interliver, DummySize,
     % emit=pdist2(states, ObservationsSequnceMat, 'hamming');
     % 
     % data=Viterbi(states,init,trans,emit,ObservationsSequnceMat);
-
-    trellis = poly2trellis(4,[15 13],13);
-    S2= vitdec([S1,P1],trellis,40,'trunc','hard');
-    data= vitdec([S2,P2],trellis,40,'trunc','hard');
 
 end
 

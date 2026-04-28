@@ -1,6 +1,6 @@
 clc; clear; close all;
 
-%% definitions
+%% CRC definitions
 
 % deECCbits = []; % MUST IMPLEMENT !!!
 deECCbits = zeros(1,1408);
