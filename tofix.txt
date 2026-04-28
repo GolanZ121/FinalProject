@@ -1,0 +1,21 @@
+payload_length:88,
+unknown1:16,
+version:2,
+sequence_number:19712,A
+states_info:[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],A
+serial:"3N3BJ9401204JD  ",
+long:0,
+lat:0,
+altitude:15872,A
+height:0,
+v_north:0,
+v_east:1792,A
+v_up:64255,A
+unknown2:11228,A
+app_lat:3408024832,A
+app_long:3436076032,A
+home_long:0,
+home_lat:0,
+device_type:58,
+uuid_len: 19,
+uuid: "1988575111177523200 ",

@@ -1,34 +1,49 @@
 clc; clear; close all;
 
+%% compare between bit file and data file
+
+filename = 'processed_bits/processed_bits12_Feb_2026_09_30_39_442.txt';
+fileID = fopen(filename,'r');
+formatSpec = '%s';
+deECCbits = fscanf(fileID,formatSpec);
+fclose(fileID);
+deECCbits = dec2bin(hex2dec(reshape(deECCbits, numel(deECCbits), [])))';
+deECCbits = (deECCbits(:)).';
+
+filename = 'parsed_data-20260423T161047Z-3-001\parsed_data/parsed_data12_Feb_2026_09_30_39_442.txt';
+fileID = fopen(filename,'r');
+formatSpec = '%s';
+data = fscanf(fileID,formatSpec);
+fclose(fileID);
+
 %% tests
-deECCbits = ones(1,1000);
-payload_length = bin2dec(int2str(deECCbits(1:8)));
-unknown1 = bin2dec(int2str(deECCbits(9:16)));
-version = bin2dec(int2str(deECCbits(17:24)));
-sequence_number = bin2dec(int2str(deECCbits(25:40)));
-states_info = deECCbits(41:56);
+payload_length = bin2dec(deECCbits(1:8));
+unknown1 = bin2dec(deECCbits(9:16));
+version = bin2dec(deECCbits(17:24));
+sequence_number = bin2dec(deECCbits(25:40));
+states_info = logical(deECCbits(41:56));
 serial = deECCbits(57:184);
 serial = reshape(serial, 8, [])';
-serial = bin2dec(int2str(serial));
+serial = bin2dec(serial);
 serial = char(serial); 
-long = bin2dec(int2str(deECCbits(185:216)));
-lat = bin2dec(int2str(deECCbits(217:248)));
-altitude = bin2dec(int2str(deECCbits(249:264)));
-height = bin2dec(int2str(deECCbits(265:280)));
-v_north = bin2dec(int2str(deECCbits(281:296)));
-v_east = bin2dec(int2str(deECCbits(297:312)));
-v_up = bin2dec(int2str(deECCbits(313:328)));
-unknown2 = bin2dec(int2str(deECCbits(329:344)));
+long = bin2dec(deECCbits(185:216));
+lat = bin2dec(deECCbits(217:248));
+altitude = bin2dec(deECCbits(249:264));
+height = bin2dec(deECCbits(265:280));
+v_north = bin2dec(deECCbits(281:296));
+v_east = bin2dec(deECCbits(297:312));
+v_up = bin2dec(deECCbits(313:328));
+unknown2 = bin2dec(deECCbits(329:344));
 % time = %COMPLETE LATER!!!
-app_lat = bin2dec(int2str(deECCbits(409:440)));
-app_long = bin2dec(int2str(deECCbits(441:472)));
-home_long = bin2dec(int2str(deECCbits(473:504)));
-home_lat = bin2dec(int2str(deECCbits(505:536)));
-device_type = bin2dec(int2str(deECCbits(537:544)));
-uuid_len = bin2dec(int2str(deECCbits(545:552)));
-uuid = deECCbits(57:184);
+app_lat = bin2dec(deECCbits(409:440));
+app_long = bin2dec(deECCbits(441:472));
+home_long = bin2dec(deECCbits(473:504));
+home_lat = bin2dec(deECCbits(505:536));
+device_type = bin2dec(deECCbits(537:544));
+uuid_len = bin2dec(deECCbits(545:552));
+uuid = deECCbits(553:712);
 uuid = reshape(uuid, 8, [])';
-uuid = bin2dec(int2str(uuid));
+uuid = bin2dec(uuid);
 uuid = char(uuid); 
 
 fileID = fopen('test.txt','w');
@@ -46,14 +61,14 @@ fprintf(fileID,'v_north:%d,\n',v_north);
 fprintf(fileID,'v_east:%d,\n',v_east);
 fprintf(fileID,'v_up:%d,\n',v_up);
 fprintf(fileID,'unknown2:%d,\n',unknown2);
-fprintf(fileID,'time:%d-%d-%d,\n',unknown2);%COMPLETE LATER!!!
+% fprintf(fileID,'time:%d-%d-%d,\n',unknown2);%COMPLETE LATER!!!
 fprintf(fileID,'app_lat:%d,\n',app_lat);
 fprintf(fileID,'app_long:%d,\n',app_long);
 fprintf(fileID,'home_long:%d,\n',home_long);
 fprintf(fileID,'home_lat:%d,\n',home_lat);
 fprintf(fileID,'device_type:%d,\n',device_type);
-fprintf(fileID,'uuid_len:%d,\n',uuid_len);
-fprintf(fileID,'uuid:"%s",\n',serial);
+fprintf(fileID,'uuid_len: %d,\n',uuid_len);
+fprintf(fileID,'uuid: "%s",\n',uuid);
 
 fclose(fileID);
  

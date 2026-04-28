@@ -1,27 +1,35 @@
 %% clean
 clc; clear; close all;
 
-%% Scripts to fix the phase 
-% Params
-Fs = 15.36e6;
-
-% load the raw_samples file 
+%% load the raw_samples file 
 filename = 'synced_samples-20260423T161109Z-3-001/synced_samples/synced_samples_12_Feb_2026_09_30_39_442_fs_15.36MHz.32fc';
 fileID = fopen(filename, 'r');
 data = fread(fileID, [2, Inf], 'single');
 data = data(1,:) + 1i*data(2,:);
 fclose(fileID);
 
-start_block4 = 1024 * 3 + 80 + 72 * 3 + 1;
-start_block6 = 1024 * 5 + 80 +72 * 5 + 1;
+%% Scripts to fix the phase 
+
+% Params
+Fs = 15.36e6;
+Ncp = 72;
+ex_Ncp = 80;
+Nsc = 1024;
+start_sc = 213;
+stop_sc = 813;
+num_of_symbols = 9;
+NFFT = 1024;
+
+start_block4 = Nsc * 3 + ex_Ncp + Ncp * 3 + 1;
+start_block6 = Nsc * 5 + ex_Ncp + Ncp * 5 + 1;
 
 block4 = data(start_block4:(1024 + start_block4 - 1));
 block6 = data(start_block6:(1024 + start_block6 - 1));
 
 phase = phase_sync(block4,block6);
 
-% start_block1 = 1024 * 0 + 80 +72 * 0 + 1;
-% block1 = data(start_block1:(1024 + start_block1 - 1))
+% start_block1 = 81;
+% block1 = data(start_block1:(Nsc + start_block1 - 1))
 % block1 = block1.*exp(phase*j);
 % 
 % x = fftshift(fft(block1));
@@ -30,14 +38,6 @@ phase = phase_sync(block4,block6);
 data = data.*exp(phase*1j);
 
 %% Script to examine ofdm function
-% Params
-Ncp = 72;
-ex_Ncp = 80;
-Nsc = 1024;
-start_sc = 213;
-stop_sc = 813;
-num_of_symbols = 9;
-NFFT = 1024;
 
 demodulated_data = ofdm_demod(data,Ncp,ex_Ncp,Nsc,start_sc,stop_sc, num_of_symbols);
 
