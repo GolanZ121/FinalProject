@@ -9,7 +9,7 @@ deECCbits = zeros(1,1408);
 deECCbitsLen=1408;
 CRCLen=24; %at the end of the data
 polynom=[1 1 0 1 1 1 1 1 0 0 1 1 0 0 1 0 0 1 1 0 0 0 0 1 1]; % 0 --> n=24 
-init = zeros(CRCLen,1).';
+init = zeros(1,CRCLen);
 
 %% test
 IsValidCRC = CRC_Vailidation(deECCbits, polynom, init);
@@ -60,7 +60,7 @@ IsValidCRC = (bits(deECCbitsLen-CRCLen:end)== zeros(CRCLen,1).');
 
 end
 
-function IsValidCRC = CRC_Vailidation(deECCbits, polynom, init)
+function IsValidCRC = CRC_Vailidation1(deECCbits, polynom, init)
 
 % validates the check value of the Cyclic redundancy check 
 % parameters:
@@ -99,3 +99,24 @@ success = CRC_Vailidation(deECCbits, CRCLen, deECCbitsLen, polynom,init);
 
 end
 
+function IsValidCRC = CRC_Vailidation(deECCbits, deECCbitsLen, polynom,init)
+
+% validates the check value of the Cyclic redundancy check 
+% parameters:
+% deECCbits - the bits after decoding the xor mask, cyclic buffer and error correction code (interliver)
+% deECCbitsLen - the length of the bit sequence (data+CRC_CheckValue)
+% polynom - the characteristic polynomial 
+
+residue = zeros(1,length(init));
+
+for i=0:deECCbitsLen - 1
+    max_index = residue(end);
+    residue = [deECCbits(end-i),residue(1:end-1)];
+    if max_index == 1
+        residue =  xor(residue,polynom(1:end-1)); % modulate with polynom
+    end
+end
+
+IsValidCRC = (residue== init);
+
+end

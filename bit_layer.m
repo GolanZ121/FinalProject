@@ -18,7 +18,7 @@ bits = bits(:);
 mask = gen_gold_code;
 demasked_bits = xor(bits,mask);
 
-bits_after_cycle = cyclic_buffer(demasked_bits,start,buffer_size);
+bits_after_cycle = cyclic_buffer(demasked_bits,start,buffer_size).';
 
 %% functions
 
