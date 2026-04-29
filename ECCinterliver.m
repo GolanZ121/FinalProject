@@ -31,7 +31,7 @@ function data=TurboDecoder(ProccesedBits, SubBlockLength, interliver, DummySize,
 
     ConstraintLen= 4; % because the polynomial degree is 3 
     FeedBackConn =13; % because 13 in octal base is 11 which is 1011 in binary base which is equal to 1+D^2+D^3 which is the polynom of the encryption
-    CodeGen= [15 13]; % 15[oct]= 13[dec]= 1101[bin]=1+D+D^3 (G)
+    CodeGen= [13 15]; % 13[dec]= 1101[bin]=1+D+D^3 15[dec]=1111[bin] (G)
     trellis = poly2trellis(ConstraintLen,CodeGen,FeedBackConn); 
 
     tbdepthPres=[1/2 5;2/3 7.5;3/4 10;5/6 15]; % common tbdepth by CodeRate according to matlab documentation

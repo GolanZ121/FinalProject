@@ -2,7 +2,7 @@
 clc; clear; close all;
 Fs = 10e6;
 % Create USRP receiver
-time_of_capture = 640e-3;
+time_of_capture = 5;
 samples_to_cap = time_of_capture * Fs;
 %%
 rx = comm.SDRuReceiver( ...

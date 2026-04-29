@@ -2,7 +2,7 @@ clc; clear; close all;
 
 %% compare between bit file and data file
 
-filename = 'processed_bits/processed_bits12_Feb_2026_09_30_39_442.txt';
+filename = 'processed_bits/processed_bits12_Feb_2026_13_34_28_250.txt';
 fileID = fopen(filename,'r');
 formatSpec = '%s';
 deECCbits = fscanf(fileID,formatSpec);
@@ -97,7 +97,12 @@ fprintf(fileID,'home_lat:%.30f,\n',home_lat);
 fprintf(fileID,'device_type:%d,\n',device_type);
 fprintf(fileID,'uuid_len: %d,\n',uuid_len);
 fprintf(fileID,'uuid: "%s",\n',uuid);
-fprintf(fileID,'crc:"%s",\n',crc);
+fprintf(fileID,'crc: "%s",\n',crc);
 fprintf(fileID,'crc_valid:true');
 
 fclose(fileID);
+
+%% plot map
+
+% geoplot(double(app_lat),double(app_long),double(lat),double(long),double(home_lat),double(home_long))
+geoplot(double(app_lat),double(app_long))

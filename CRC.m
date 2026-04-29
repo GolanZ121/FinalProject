@@ -74,7 +74,6 @@ IsValidCRC = (res == init);
 
 end
 
-
 function success = CRC_test(deECCbits, CRCLen, deECCbitsLen, polynom, init, CheckValue)
 
 % validates the check value of the Cyclic redundancy check 
@@ -105,7 +104,8 @@ function IsValidCRC = CRC_Vailidation(deECCbits, deECCbitsLen, polynom,init)
 % parameters:
 % deECCbits - the bits after decoding the xor mask, cyclic buffer and error correction code (interliver)
 % deECCbitsLen - the length of the bit sequence (data+CRC_CheckValue)
-% polynom - the characteristic polynomial 
+% polynom - the characteristic polynomial
+% init - initialize the crc value before the polynom division
 
 residue = zeros(1,length(init));
 

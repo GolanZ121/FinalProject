@@ -10,16 +10,7 @@ fclose(fileID);
 deECCbits = dec2bin(hex2dec(reshape(deECCbits, numel(deECCbits), [])))';
 deECCbits = (deECCbits(:)).';
 
-filename = 'parsed_data-20260423T161047Z-3-001\parsed_data/parsed_data12_Feb_2026_09_30_39_442.txt';
-fileID = fopen(filename,'r');
-formatSpec = '%s';
-data = fscanf(fileID,formatSpec);
-fclose(fileID);
-
-
-%%
-% swapbytes(bin2dec((deECCbits(313:328))))
-%% tests
+%% parsing
 payload_length = bin2dec(deECCbits(1:8));
 
 unknown1 = bin2dec(deECCbits(9:16));
@@ -37,10 +28,10 @@ serial = char(serial);
 
 divider_for_degrees = 174533; % A given number that we need to divide by to get coordinate in degrees
 
-long = swapbytes(uint32(bin2dec(deECCbits(['0b',deECCbits(185:216),'s32']))));
+long = swapbytes(int32(bin2dec(['0b',deECCbits(185:216),'s32'])));
 long = vpa(double(long)/divider_for_degrees);
 
-lat = swapbytes(uint32(bin2dec(deECCbits(['0b',deECCbits(217:248),'s32']))));
+lat = swapbytes(int32(bin2dec(['0b',deECCbits(217:248),'s32'])));
 lat = vpa(double(lat)/divider_for_degrees);
 
 altitude = swapbytes(int16(bin2dec(['0b',deECCbits(249:264),'s16'])));
@@ -58,17 +49,17 @@ unknown2 = swapbytes(int16(bin2dec(['0b',deECCbits(329:344),'s16'])));
 time = datetime(1970,1,1,0,0,0,0,'InputFormat','dd-MM-uuuu'' ''HH:mm:ss');
 addMS = ceil(milliseconds(swapbytes(uint64(bin2dec(deECCbits(345:408))))));
 time = time + addMS;
-409:440
-app_lat = swapbytes(uint32(bin2dec(deECCbits(['0b',deECCbits(185:216),'s32']))));
+
+app_lat = swapbytes(int32(bin2dec(['0b',deECCbits(409:440),'s32'])));
 app_lat = vpa(double(app_lat)/divider_for_degrees);
-441:472
-app_long = swapbytes(uint32(bin2dec(deECCbits())));
+
+app_long = swapbytes(int32(bin2dec(['0b',deECCbits(441:472),'s32'])));
 app_long = vpa(double(app_long)/divider_for_degrees);
-473:504
-home_long = swapbytes(uint32(bin2dec(deECCbits())));
+
+home_long = swapbytes(int32(bin2dec(['0b',deECCbits(473:504),'s32'])));
 home_long = vpa(double(home_long)/divider_for_degrees);
-505:536
-home_lat = swapbytes(uint32(bin2dec(deECCbits())));
+
+home_lat = swapbytes(int32(bin2dec(['0b',deECCbits(505:536),'s32'])));
 home_lat = vpa(double(home_lat)/divider_for_degrees);
 
 device_type = bin2dec(deECCbits(537:544));
@@ -90,8 +81,8 @@ fprintf(fileID,'version:%d,\n',version);
 fprintf(fileID,'sequence_number:%d,\n',sequence_number);
 fprintf(fileID,'states_info:[%c,%c,%c,%c,%c,%c,%c,%c,%c,%c,%c,%c,%c,%c,%c,%c],\n',states_info);
 fprintf(fileID,'serial:"%s",\n',serial);
-fprintf(fileID,'long:%d,\n',long);
-fprintf(fileID,'lat:%d,\n',lat);
+fprintf(fileID,'long:%.30f,\n',long);
+fprintf(fileID,'lat:%.30f,\n',lat);
 fprintf(fileID,'altitude:%d,\n',altitude);
 fprintf(fileID,'height:%d,\n',height);
 fprintf(fileID,'v_north:%d,\n',v_north);
@@ -110,3 +101,8 @@ fprintf(fileID,'crc:"%s",\n',crc);
 fprintf(fileID,'crc_valid:true');
 
 fclose(fileID);
+
+%% plot map
+
+geoplot(double(lat),double(long))
+title()
