@@ -55,13 +55,18 @@ end
 
 x1 = zeros(Nc + L + 31, 1);
 x2 = zeros(Nc + L + 31, 1);
-x2(1:32) = flip(de2bi(seed, 32,'left-msb'));
+x2(1:32) = flip(fdec2bin(seed, 32));
 x1(1) = 1;
 for n = 1:(Nc + L)
     x1(n + 31) = xor(x1(n + 3), x1(n));
     x2(n + 31) = xor(xor(x2(n + 3), x2(n + 2)), xor(x2(n+1), x2(n)));
 end
 seq = xor(x1(Nc + 1:Nc+L), x2(Nc + 1:Nc+L));
+
+end
+
+function res=fdec2bin(dec_num, min_dig)
+    res=dec2bin(dec_num,min_dig)-'0';
 end
 
 % this function removes a cyclic buffer
