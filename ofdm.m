@@ -1,13 +1,15 @@
+%% 
 %% clean
 clc; clear; close all;
 
 %% load the raw_samples file 
-filename = 'synced_samples-20260423T161109Z-3-001/synced_samples/synced_samples_12_Feb_2026_09_30_39_442_fs_15.36MHz.32fc';
+filename = 'output.32fc';
 fileID = fopen(filename, 'r');
 data = fread(fileID, [2, Inf], 'single');
 data = data(1,:) + 1i*data(2,:);
 fclose(fileID);
 
+load("channel.mat");
 %% Scripts to fix the phase 
 
 % Params
@@ -35,21 +37,21 @@ phase = phase_sync(block4,block6);
 % x = fftshift(fft(block1));
 % 
 % scatterplot(x)
-data = data.*exp(phase*1j);
+% data = data.*exp(phase*1j);
 
 %% Script to examine ofdm function
 
-demodulated_data = ofdm_demod(data,Ncp,ex_Ncp,Nsc,start_sc,stop_sc, num_of_symbols);
+demodulated_data = ofdm_demod(data,Ncp,ex_Ncp,Nsc,start_sc,stop_sc, num_of_symbols, H);
 
 % check the result 
-% filename = 'raw_bits-20260423T161106Z-3-001\raw_bits/raw_bits_12_Feb_2026_09_30_39_442.txt';
-% fileID = fopen(filename,'r');
-% formatSpec = '%s';
-% bits = fscanf(fileID,formatSpec);
-% fclose(fileID);
-% binresult = dec2bin(hex2dec(reshape(bits, numel(bits), [])))';
-% binresult = binresult(:);
-% err = sum(binresult ~= demodulated_data);
+filename = 'raw_bits-20260423T161106Z-3-001\raw_bits/raw_bits_12_Feb_2026_13_34_20_590.txt';
+fileID = fopen(filename,'r');
+formatSpec = '%s';
+bits = fscanf(fileID,formatSpec);
+fclose(fileID);
+binresult = dec2bin(hex2dec(reshape(bits, numel(bits), [])))';
+binresult = binresult(:);
+err = sum(binresult ~= demodulated_data);
 
 %% functions
 
@@ -74,7 +76,7 @@ function phase = phase_sync(block4,block6)
 end
 
 % this function demodulates ofdm
-function data = ofdm_demod(packet,Ncp,ex_Ncp,Nsc,start_sc,stop_sc, num_of_symbols)
+function data = ofdm_demod(packet,Ncp,ex_Ncp,Nsc,start_sc,stop_sc, num_of_symbols, H)
     % packet - the packet of information
     % Ncp - cyclic prefix, a partial copy of the end of the symbol to create  a
     % correlation peak at each start of symbol
@@ -86,11 +88,15 @@ function data = ofdm_demod(packet,Ncp,ex_Ncp,Nsc,start_sc,stop_sc, num_of_symbol
     clean_packet = remove_cp(packet,Ncp,ex_Ncp,Nsc,num_of_symbols); % packet without cp
     
     slot = reshape(clean_packet,Nsc,[]); % create the slot matrix
-    slot_fft = fftshift(fft(slot),1)./(sqrt(Nsc)); % according to the formula (not sure if needed in our case)
+    slot_fft = fftshift(fft(slot) ./ repmat(H, 1, 9) ,1)./(sqrt(Nsc)); % according to the formula (not sure if needed in our case)
     slot_fft = slot_fft(start_sc:stop_sc,:); % cut the irrelevant frequencies (frequency domain)
     slot_fft = [slot_fft(1:300,:);slot_fft(302:end,:)]; % the mid subcarrier is null
     slot_fft = [slot_fft(:,2:3),slot_fft(:,5),slot_fft(:,7:end)]; % The data is stored in symbols [2,3,5,7,8,9]
-
+    
+    figure;
+    title("after Channel Est")
+    plot(slot_fft(:, :), "o");
+    
     % transform the slot to bits of data
     data = slot_fft(:);
     data = pskdemod(data,4,0.25*pi);

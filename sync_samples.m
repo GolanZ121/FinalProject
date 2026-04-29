@@ -4,8 +4,8 @@
 clc; clear; close all;
 
 %% Params
-filename = 'raw_samples/raw_samples_12_Feb_2026_09_30_39_442_fs_10MHz.32fc';
-file_Fs = 10e6;
+filename = 'rec1.mat';
+file_Fs = 15.36e6;
 NFFT = 1024;
 scs = 15e3;
 Fs = scs * NFFT;
@@ -16,6 +16,10 @@ SPP = sum(cps_lens) + length(cps_lens) * NFFT;  % Samples per packet
 
 %% Load samples 
 data = load_samples(filename, file_Fs, Fs);
+data(isnan(data)) = 0;
+
+load(filename);
+data = data2;
 
 %% create ZadoffChu sequences
 zc1 = create_zc_OFDM(600);
@@ -25,14 +29,14 @@ zc2 = create_zc_OFDM(147);
 [time_c_rough, time_idx_rough] = cross_corr(zc1, data);
 samples_before_zc1 = sum(cps_lens(1:ZC1_sym)) + (ZC1_sym-1)*NFFT;
 start_index = time_idx_rough - samples_before_zc1;
-
+plot(abs(time_c_rough));
 time_aligned_packet = data(start_index:start_index + SPP - 1);
 
 %% Coarse frequency correction (using CPs)
 coarse_freq_offset = find_freq_offset(time_aligned_packet, cps_lens, NFFT, Fs);
 
 % === > Fix the freq shift < === %
-   data = fix_freq(data, coarse_freq_offset, Fs);
+data = fix_freq(data, coarse_freq_offset, Fs);
 
 
 %% Fine time sync 
@@ -41,7 +45,11 @@ start_index = time_idx_fine - samples_before_zc1;
 
 time_aligned_packet = data(start_index:start_index + SPP - 1);
 
-%% PLOT QPSK of symbols in packet
+%% Estimate channel
+recievedZC = time_aligned_packet(NFFT*(ZC1_sym-1) + sum(cps_lens(1:4)) + 1: NFFT*ZC1_sym + sum(cps_lens(1:4)));
+H = fft(recievedZC) ./ fft(zc1);
+
+%% Save Synced samples and channel as files
 fid = fopen('output.32fc','wb');       
 x = single(time_aligned_packet); 
 interleaved = zeros(2*numel(x),1,'single');
@@ -49,6 +57,8 @@ interleaved(1:2:end) = real(x);
 interleaved(2:2:end) = imag(x); 
 fwrite(fid, interleaved, 'float32');
 fclose(fid);
+
+save("channel.mat", "H");
 
 %% 
 
@@ -86,5 +96,6 @@ function data = load_samples(filename, file_Fs, Fs)
     fid = fopen(filename , "r");
     samples = fread(fid, [2 inf], "float32=>double");
     fclose(fid);
+    % data = complex(samples(1,:), samples(2, :));
     data = resample(complex(samples(1,:), samples(2, :)).', Fs, file_Fs);
 end
