@@ -109,6 +109,7 @@ end
 
 % this function receives a packet with cp and returns it without
 function clean_packet = remove_cp(packet,Ncp,ex_Ncp,Nsc,num_of_symbols)
+
     % packet - the packet of information
     % Ncp - cyclic prefix, a partial copy of the end of the symbol to create  a
     % correlation peak at each start of symbol

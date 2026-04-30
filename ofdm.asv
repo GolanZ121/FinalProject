@@ -1,3 +1,4 @@
+%% 
 %% clean
 clc; clear; close all;
 
@@ -36,21 +37,21 @@ phase = phase_sync(block4,block6);
 % x = fftshift(fft(block1));
 % 
 % scatterplot(x)
-data = data.*exp(phase*1j);
+% data = data.*exp(phase*1j);
 
 %% Script to examine ofdm function
 
 demodulated_data = ofdm_demod(data,Ncp,ex_Ncp,Nsc,start_sc,stop_sc, num_of_symbols, H);
 
 % check the result 
-% filename = 'raw_bits-20260423T161106Z-3-001\raw_bits/raw_bits_12_Feb_2026_09_30_39_442.txt';
-% fileID = fopen(filename,'r');
-% formatSpec = '%s';
-% bits = fscanf(fileID,formatSpec);
-% fclose(fileID);
-% binresult = dec2bin(hex2dec(reshape(bits, numel(bits), [])))';
-% binresult = binresult(:);
-% err = sum(binresult ~= demodulated_data);
+filename = 'raw_bits-20260423T161106Z-3-001\raw_bits/raw_bits_12_Feb_2026_13_34_20_590.txt';
+fileID = fopen(filename,'r');
+formatSpec = '%s';
+bits = fscanf(fileID,formatSpec);
+fclose(fileID);
+binresult = dec2bin(hex2dec(reshape(bits, numel(bits), [])))';
+binresult = binresult(:);
+err = sum(binresult ~= demodulated_data);
 
 %% functions
 
@@ -87,9 +88,7 @@ function data = ofdm_demod(packet,Ncp,ex_Ncp,Nsc,start_sc,stop_sc, num_of_symbol
     clean_packet = remove_cp(packet,Ncp,ex_Ncp,Nsc,num_of_symbols); % packet without cp
     
     slot = reshape(clean_packet,Nsc,[]); % create the slot matrix
-    slot_fft = fft(slot)./(sqrt(Nsc)); % according to the formula (not sure if needed in our case)
-    slot_fft = slot_fft ./ repmat(H, 1, 9);
-        
+    slot_fft = fftshift(fft(slot) ./ repmat(H, 1, 9) ,1)./(sqrt(Nsc)); % according to the formula (not sure if needed in our case)
     slot_fft = slot_fft(start_sc:stop_sc,:); % cut the irrelevant frequencies (frequency domain)
     slot_fft = [slot_fft(1:300,:);slot_fft(302:end,:)]; % the mid subcarrier is null
     slot_fft = [slot_fft(:,2:3),slot_fft(:,5),slot_fft(:,7:end)]; % The data is stored in symbols [2,3,5,7,8,9]
@@ -110,6 +109,7 @@ end
 
 % this function receives a packet with cp and returns it without
 function clean_packet = remove_cp(packet,Ncp,ex_Ncp,Nsc,num_of_symbols)
+
     % packet - the packet of information
     % Ncp - cyclic prefix, a partial copy of the end of the symbol to create  a
     % correlation peak at each start of symbol

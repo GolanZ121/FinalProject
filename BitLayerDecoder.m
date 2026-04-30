@@ -211,7 +211,6 @@ IsValidCRC = (residue== init);
 end
 
 %% parsing function
-%% parsing function
 function parsing(deECCbits)
 
 payload_length = bin2dec(deECCbits(1:8));
