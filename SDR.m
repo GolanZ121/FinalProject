@@ -91,6 +91,8 @@ figure;
 time_aligned_packet = data_vec(start_index:start_index + SPP - 1);
 spectrogram(time_aligned_packet,100,80,100,Fs,'centered', 'yaxis')
 
+%%
+
 
 %% Functions
 
