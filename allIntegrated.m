@@ -1,7 +1,9 @@
 %% SDR side
+
 clc; clear; close all;
 
 %% Params
+
 NFFT = 1024;
 scs = 15e3;
 CorrectFs = scs * NFFT;
@@ -16,16 +18,19 @@ FcIdx =1;
 
 start_sc = 213;
 stop_sc = 813;
+
 %% create ZadoffChu sequences
+
 zc1 = create_zc_OFDM(600);
 zc2 = create_zc_OFDM(147);
 
 %%
+
 rx = comm.SDRuReceiver( ...
     'Platform', 'B210', ...
     'SerialNum', '34D62B0', ...
     'CenterFrequency',    2.4295e+09, ...
-    'Gain', 30, ...
+    'Gain', 50, ...
     'MasterClockRate', Fs, ...
     'SamplesPerFrame', 64000, ...
     'DecimationFactor', 1);
@@ -45,7 +50,7 @@ while true
     % subplot(2,1,1);
     [time_c_rough, time_idx_rough] = cross_corr(zc1, data_res);
     threshold = 40* mean(abs(time_c_rough));
-    threshold = 25e3;
+    threshold = 35e3;
     samples_before_zc1 = sum(cps_lens(1:ZC1_sym)) + (ZC1_sym-1)*NFFT;
     start_index = time_idx_rough - samples_before_zc1;
     plot(abs(time_c_rough));
@@ -54,20 +59,21 @@ while true
         break
     else
         FcIdx = FcIdx + 1;
-        FcIdx = mod(FcIdx, length(Fcs)) + 1
+        FcIdx = mod(FcIdx, length(Fcs))+1
         rx.CenterFrequency = Fcs(FcIdx);
     end
     % subplot(2,1,2);
     % spectrogram(data_res,100,80,100,Fs, 'centered', 'yaxis' );
     drawnow;
 end
-%%
 
+%% plot spectrogram
 
-%%
 figure;
 spectrogram(data_res,100,80,100,Fs, 'centered', 'yaxis' );
+
 %% Time Sync (Rough because we still have the freq shift)
+
 [time_c_rough, time_idx_rough] = cross_corr(zc1, data_res);
 samples_before_zc1 = sum(cps_lens(1:ZC1_sym)) + (ZC1_sym-1)*NFFT;
 start_index = time_idx_rough - samples_before_zc1;
@@ -75,17 +81,20 @@ figure;
 plot(abs(time_c_rough));
 
 %% Cut packet
+
 figure;
 time_aligned_packet = data_res(start_index:start_index + SPP - 1);
 spectrogram(time_aligned_packet,100,80,100,Fs,'centered', 'yaxis')
 
 %% Coarse frequency correction (using CPs)
+
 coarse_freq_offset = find_freq_offset(time_aligned_packet, cps_lens, NFFT, Fs);
 
 % === > Fix the freq shift < === %
 data_vec = fix_freq(data_vec, coarse_freq_offset, Fs);
 
 %% Time Sync (Rough because we still have the freq shift)
+
 [time_c_rough, time_idx_rough] = cross_corr(zc2, data_vec);
 samples_before_zc1 = sum(cps_lens(1:ZC2_sym)) + (ZC2_sym-1)*NFFT;
 start_index = time_idx_rough - samples_before_zc1;
@@ -93,20 +102,27 @@ figure;
 plot(abs(time_c_rough));
 
 %% Cut packet
+
 figure;
 time_aligned_packet = data_vec(start_index:start_index + SPP - 1);
 spectrogram(time_aligned_packet,100,80,100,Fs,'centered', 'yaxis')
 
 %% Estimate channel
+
 recievedZC = time_aligned_packet(NFFT*(ZC1_sym-1) + sum(cps_lens(1:4)) + 1: NFFT*ZC1_sym + sum(cps_lens(1:4)));
 H = fft(recievedZC) ./ fft(zc1);
 
-
 demodulated_data = ofdm_demod(time_aligned_packet,cps_lens(2),cps_lens(1),NFFT,start_sc,stop_sc, length(cps_lens), H);
+save("WORKING_BITS.mat", "demodulated_data");
 
-%% decode bit layer
+%% decode bit layer);
 
-%OutputData=BitLayerDecoder (demodulated_data);
+%save("WORKING_BITS.mat", "demodulated_data");
+load("WORKING_BITS.mat")
+mashu  = double(demodulated_data - '0');
+% BitLayerDecoder (mashu.');
+BitLayerDecoder (demodulated_data);
+
 
 %% synchronization Functions
 
@@ -518,7 +534,7 @@ uuid = char(uuid);
 crc = uint16(bin2dec(deECCbits(713:end)));
 crc = dec2hex(swapbytes(crc));
 
-fileID = fopen('test.txt','w');
+fileID = fopen('test.txt','a');
 fprintf(fileID,'payload_length:%d,\n',payload_length);
 fprintf(fileID,'unknown1:%d,\n',unknown1);
 fprintf(fileID,'version:%d,\n',version);
