@@ -18,8 +18,11 @@ SPP = sum(cps_lens) + length(cps_lens) * NFFT;  % Samples per packet
 data = load_samples(filename, file_Fs, Fs);
 data(isnan(data)) = 0;
 
-load(filename);
-data = data2;
+% load(filename);
+% data = data2;
+%% Plot spectrogram 
+figure;
+spectrogram(data,100,80,100,Fs,'centered', 'yaxis');
 
 %% create ZadoffChu sequences
 zc1 = create_zc_OFDM(600);
@@ -29,6 +32,7 @@ zc2 = create_zc_OFDM(147);
 [time_c_rough, time_idx_rough] = cross_corr(zc1, data);
 samples_before_zc1 = sum(cps_lens(1:ZC1_sym)) + (ZC1_sym-1)*NFFT;
 start_index = time_idx_rough - samples_before_zc1;
+figure;
 plot(abs(time_c_rough));
 time_aligned_packet = data(start_index:start_index + SPP - 1);
 
@@ -44,6 +48,10 @@ data = fix_freq(data, coarse_freq_offset, Fs);
 start_index = time_idx_fine - samples_before_zc1;
 
 time_aligned_packet = data(start_index:start_index + SPP - 1);
+
+%% Plot spectrogram 
+figure;
+spectrogram(time_aligned_packet,100,80,100,Fs,'centered', 'yaxis');
 
 %% Estimate channel
 recievedZC = time_aligned_packet(NFFT*(ZC1_sym-1) + sum(cps_lens(1:4)) + 1: NFFT*ZC1_sym + sum(cps_lens(1:4)));
@@ -72,8 +80,8 @@ function freq_offset = find_freq_offset(packet, cps_lens, NFFT, Fs)
     num_of_syms = length(cps_lens);
     vec = zeros(num_of_syms, 1);
     for i = 1: num_of_syms
-        cp_i1 = packet(cp_start_index : cp_start_index + cps_lens(i) - 1);
-        cp_i2 = packet(cp_start_index + NFFT : cp_start_index + NFFT + cps_lens(i) -1);
+        cp_i1 = double(packet(cp_start_index : cp_start_index + cps_lens(i) - 1));
+        cp_i2 = double(packet(cp_start_index + NFFT : cp_start_index + NFFT + cps_lens(i) -1));
         vec(i) = sum(cp_i1 .* conj(cp_i2));
         cp_start_index = cp_start_index + NFFT + cps_lens(i);
     end

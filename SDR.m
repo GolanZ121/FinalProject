@@ -1,18 +1,145 @@
-%% SDR side 
+%% SDR side
 clc; clear; close all;
-Fs = 10e6;
-% Create USRP receiver
-time_of_capture = 640e-3;
-samples_to_cap = time_of_capture * Fs;
+
+%% Params
+NFFT = 1024;
+scs = 15e3;
+CorrectFs = scs * NFFT;
+Fs = 15.36e6;
+[p,q] = rat(CorrectFs / Fs);
+cps_lens = [80 72 72 72 72 72 72 72 80];
+ZC1_sym = 4;
+ZC2_sym = 6;
+SPP = sum(cps_lens) + length(cps_lens) * NFFT;  % Samples per packet
+
+%% create ZadoffChu sequences
+zc1 = create_zc_OFDM(600);
+zc2 = create_zc_OFDM(147);
+
 %%
 rx = comm.SDRuReceiver( ...
     'Platform', 'B210', ...
     'SerialNum', '34D62B0', ...
-    'CenterFrequency', 2.4295e9, ...  
+    'CenterFrequency',    2.4295e+09, ...
     'Gain', 30, ...
-    'SampleRate', Fs);
+    'MasterClockRate', Fs, ...
+    'SamplesPerFrame', 64000, ...
+    'DecimationFactor', 1);
+
+% subplot(2,1,1);
 %%
-    [data, metadata] = capture(rx, samples_to_cap, "Samples");
-    spectrogram(double(data),100,80,100,Fs,'centered', 'yaxis')
-    title('Live B210 Signal');
+
+num_frames = 1;
+
+while true
+    data_vec = [];
+    for i = 1:num_frames
+        data = double(rx());
+        data_vec = [data_vec; data(:)];
+    end
+    data_res = resample(data_vec, p, q);
+    
+    subplot(2,1,1);
+    [time_c_rough, time_idx_rough] = cross_corr(zc1, data_res);
+    threshold = 40* mean(abs(time_c_rough));
+    threshold = 8e3;
+    samples_before_zc1 = sum(cps_lens(1:ZC1_sym)) + (ZC1_sym-1)*NFFT;
+    start_index = time_idx_rough - samples_before_zc1;
+    lot(abs(time_c_rough));
+    yline(threshold, "--r");
+    % if max(abs(time_c_rough)) > threshold
+    %     break
+    % end
+    subplot(2,1,2);
+    spectrogram(data_res,100,80,100,Fs, 'centered', 'yaxis' );
     drawnow;
+end
+
+%%
+figure;
+spectrogram(data_res,100,80,100,Fs, 'centered', 'yaxis' );
+%% Time Sync (Rough because we still have the freq shift)
+[time_c_rough, time_idx_rough] = cross_corr(zc1, data_res);
+samples_before_zc1 = sum(cps_lens(1:ZC1_sym)) + (ZC1_sym-1)*NFFT;
+start_index = time_idx_rough - samples_before_zc1;
+figure;
+plot(abs(time_c_rough));
+
+%% Cut packet
+figure;
+time_aligned_packet = data_res(start_index:start_index + SPP - 1);
+spectrogram(time_aligned_packet,100,80,100,Fs,'centered', 'yaxis')
+%%
+data = time_aligned_packet;
+save("output.32fc", "data");
+
+%% Coarse frequency correction (using CPs)
+coarse_freq_offset = find_freq_offset(time_aligned_packet, cps_lens, NFFT, Fs);
+
+% === > Fix the freq shift < === %
+data_vec = fix_freq(data_vec, coarse_freq_offset, Fs);
+
+%% Time Sync (Rough because we still have the freq shift)
+[time_c_rough, time_idx_rough] = cross_corr(zc2, data_vec);
+samples_before_zc1 = sum(cps_lens(1:ZC2_sym)) + (ZC2_sym-1)*NFFT;
+start_index = time_idx_rough - samples_before_zc1;
+figure;
+plot(abs(time_c_rough));
+
+%% Cut packet
+figure;
+time_aligned_packet = data_vec(start_index:start_index + SPP - 1);
+spectrogram(time_aligned_packet,100,80,100,Fs,'centered', 'yaxis')
+
+
+%% Functions
+
+function fixed_data = fix_freq(data, f_offset, Fs)
+CORRECT_time_axis = (0:length(data)-1).' / Fs;
+fixed_data = data .* exp(-1j * 2 * pi * f_offset * CORRECT_time_axis);
+end
+
+function freq_offset = find_freq_offset(packet, cps_lens, NFFT, Fs)
+cp_start_index = 1;
+num_of_syms = length(cps_lens);
+vec = zeros(num_of_syms, 1);
+for i = 1: num_of_syms
+    cp_i1 = double(packet(cp_start_index : cp_start_index + cps_lens(i) - 1));
+    cp_i2 = double(packet(cp_start_index + NFFT : cp_start_index + NFFT + cps_lens(i) -1));
+    vec(i) = sum(cp_i1 .* conj(cp_i2));
+    cp_start_index = cp_start_index + NFFT + cps_lens(i);
+end
+
+freq_offset = -angle(mean(vec)) * Fs / (2 * pi * NFFT);
+end
+
+function [c, idx] = cross_corr(sig1, sig2)
+c = conv(sig2, flip(conj(sig1)), "valid");
+[~, idx] = max(abs(c));
+end
+
+function ZCOFDM = create_zc_OFDM(root)
+ZC = zadoffChuSeq(root, 601);
+ZCPAD = [zeros(212, 1); ZC; zeros(211,1)];
+ZCOFDM = ifft(ifftshift(ZCPAD));
+end
+
+function data = load_samples(filename, file_Fs, Fs)
+fid = fopen(filename , "r");
+samples = fread(fid, [2 inf], "float32=>double");
+fclose(fid);
+% data = complex(samples(1,:), samples(2, :));
+data = resample(complex(samples(1,:), samples(2, :)).', Fs, file_Fs);
+end
+function [X, freqs] = plot_fft(signal, Fs)
+arguments
+    signal
+    Fs
+end
+X = fftshift(fft(signal));
+freqs = linspace(-Fs/2, Fs/2, length(X));
+plot(freqs, (abs(X)));
+title("FFT");
+xlabel("Frequency [Hz]");
+ylabel("Magnitude [-]");
+end
