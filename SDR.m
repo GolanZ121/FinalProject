@@ -102,7 +102,7 @@ H = fft(recievedZC) ./ fft(zc1);
 
 
 demodulated_data = ofdm_demod(time_aligned_packet,cps_lens(2),cps_lens(1),NFFT,start_sc,stop_sc, length(cps_lens), H);
-%%
+
 
 
 %% Functions
