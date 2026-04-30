@@ -2,13 +2,8 @@
 %% clean
 clc; clear; close all;
 
-%% load the raw_samples file 
-filename = 'output.32fc';
-fileID = fopen(filename, 'r');
-data = fread(fileID, [2, Inf], 'single');
-data = data(1,:) + 1i*data(2,:);
-fclose(fileID);
-
+%%
+load("output.mat");
 load("channel.mat");
 %% Scripts to fix the phase 
 
@@ -22,36 +17,11 @@ stop_sc = 813;
 num_of_symbols = 9;
 NFFT = 1024;
 
-start_block4 = Nsc * 3 + ex_Ncp + Ncp * 3 + 1;
-start_block6 = Nsc * 5 + ex_Ncp + Ncp * 5 + 1;
-
-block4 = data(start_block4:(1024 + start_block4 - 1));
-block6 = data(start_block6:(1024 + start_block6 - 1));
-
-phase = phase_sync(block4,block6);
-
-% start_block1 = 81;
-% block1 = data(start_block1:(Nsc + start_block1 - 1))
-% block1 = block1.*exp(phase*j);
-% 
-% x = fftshift(fft(block1));
-% 
-% scatterplot(x)
-% data = data.*exp(phase*1j);
 
 %% Script to examine ofdm function
 
 demodulated_data = ofdm_demod(data,Ncp,ex_Ncp,Nsc,start_sc,stop_sc, num_of_symbols, H);
 
-% check the result 
-filename = 'raw_bits-20260423T161106Z-3-001\raw_bits/raw_bits_12_Feb_2026_13_34_20_590.txt';
-fileID = fopen(filename,'r');
-formatSpec = '%s';
-bits = fscanf(fileID,formatSpec);
-fclose(fileID);
-binresult = dec2bin(hex2dec(reshape(bits, numel(bits), [])))';
-binresult = binresult(:);
-err = sum(binresult ~= demodulated_data);
 
 %% functions
 

@@ -1,21 +1,18 @@
 %% SDR side
 clc; clear; close all;
 
-% Create USRP receiver
-time_of_capture = 0.008;
-samples_to_cap = 5*64e3;
-
 %% Params
 NFFT = 1024;
 scs = 15e3;
 CorrectFs = scs * NFFT;
-Fs = 50e6;
+Fs = 15.36e6;
 [p,q] = rat(CorrectFs / Fs);
 cps_lens = [80 72 72 72 72 72 72 72 80];
 ZC1_sym = 4;
 ZC2_sym = 6;
 SPP = sum(cps_lens) + length(cps_lens) * NFFT;  % Samples per packet
-
+Fcs = [2.399 2.4145 2.4259 2.4445 2.4595];
+FcIdx =1;
 %% create ZadoffChu sequences
 zc1 = create_zc_OFDM(600);
 zc2 = create_zc_OFDM(147);
@@ -27,13 +24,13 @@ rx = comm.SDRuReceiver( ...
     'CenterFrequency',    2.4295e+09, ...
     'Gain', 30, ...
     'MasterClockRate', Fs, ...
-    'SamplesPerFrame', 2^12, ...
+    'SamplesPerFrame', 64000, ...
     'DecimationFactor', 1);
 
 % subplot(2,1,1);
 %%
 
-num_frames = 400;
+num_frames = 1;
 
 while true
     data_vec = [];
@@ -43,19 +40,20 @@ while true
     end
     data_res = resample(data_vec, p, q);
     
-    subplot(2,1,1);
+    % subplot(2,1,1);
     [time_c_rough, time_idx_rough] = cross_corr(zc1, data_res);
     threshold = 40* mean(abs(time_c_rough));
-    threshold = 8e3;
+    threshold = 50e3;
     samples_before_zc1 = sum(cps_lens(1:ZC1_sym)) + (ZC1_sym-1)*NFFT;
     start_index = time_idx_rough - samples_before_zc1;
-    plot(abs(time_c_rough));
-    yline(threshold, "--r");
+    % plot(abs(time_c_rough));
+    % yline(threshold, "--r");
     if max(abs(time_c_rough)) > threshold
         break
     end
-    subplot(2,1,2);
-    spectrogram(data_res,100,80,100,Fs, 'centered', 'yaxis' );
+    rx.CenterFrequency = Fcs(mod());
+    % subplot(2,1,2);
+    % spectrogram(data_res,100,80,100,Fs, 'centered', 'yaxis' );
     drawnow;
 end
 
@@ -92,6 +90,9 @@ figure;
 time_aligned_packet = data_vec(start_index:start_index + SPP - 1);
 spectrogram(time_aligned_packet,100,80,100,Fs,'centered', 'yaxis')
 
+%%
+data = time_aligned_packet;
+save("output.mat", "data");
 
 %% Functions
 
